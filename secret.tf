@@ -1,5 +1,5 @@
 module "secret_kms_key" {
-  source = "git@github.com:oozou/terraform-aws-kms-key.git?v0.0.1"
+  source = "git@github.com:oozou/terraform-aws-kms-key.git?ref=v0.0.1"
 
   alias_name           = "${var.service_name}-service-secrets"
   append_random_suffix = true
