@@ -3,6 +3,7 @@ resource "aws_ecs_service" "public_service" {
   cluster         = local.ecs_cluster_arn
   task_definition = (local.is_apm_enabled ? aws_ecs_task_definition.service_with_apm[0].arn : aws_ecs_task_definition.service[0].arn)
   desired_count   = var.service_count
+  enable_execute_command = var.enable_execute_command
   launch_type     = "FARGATE"
   count           = var.attach_lb ? 1 : 0
 
