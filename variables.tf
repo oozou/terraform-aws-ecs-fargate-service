@@ -52,6 +52,12 @@ variable "alb_path" {
   default     = ""
 }
 
+variable "alb_host_header" {
+  description = "Mention host header for api endpoint"
+  type        = string
+  default     = null
+}
+
 variable "alb_priority" {
   description = "Priority of ALB rule https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#listener-rules"
   type        = string

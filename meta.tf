@@ -11,6 +11,8 @@ locals {
 
   ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.active.name}:${data.aws_caller_identity.active.account_id}:cluster/${var.ecs_cluster_name}"
   apm_name        = "xray-apm-sidecar"
+  enable_alb_host_header = var.alb_host_header != null ? true : false
+
 }
 
 locals {

@@ -12,6 +12,13 @@ resource "aws_lb_listener_rule" "main" {
     path_pattern {
       values = [var.alb_path == "" ? "*" : var.alb_path]
     }
+
+    dynamic "host_header" {
+      for_each = local.enable_alb_host_header ? [true] : []
+          content {
+            values = [var.alb_host_header]
+          }
+    }
   }
 
   provider = aws.service
