@@ -1,7 +1,25 @@
-variable "service_name" {
-  description = "Name of the service"
+/* -------------------------------------------------------------------------- */
+/*                                   Generic                                  */
+/* -------------------------------------------------------------------------- */
+
+variable "name" {
+  description = "Name of the ECS cluster to create"
   type        = string
 }
+
+variable "environment" {
+  description = "Environment Variable used as a prefix"
+  type        = string
+}
+
+variable "prefix" {
+  description = "The prefix name of customer to be displayed in AWS console and resource"
+  type        = string
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               Fargate Service                              */
+/* -------------------------------------------------------------------------- */
 
 variable "service_image" {
   description = "Image name for the container"
@@ -138,14 +156,6 @@ variable "account_alias" {
   type        = string
 }
 
-# variable "log_aggregation_s3" {
-#   description = "[Required] S3 details where logs are stored"
-#   type = object({
-#     bucket_name = string
-#     kms_key_arn = string
-#   })
-# }
-
 variable "custom_tags" {
   description = "Custom tags which can be passed on to the AWS resources. They should be key value pairs having distinct keys"
   type        = map(any)
@@ -171,3 +181,11 @@ variable "apm_config" {
     memory       = 512
   }
 }
+
+# variable "log_aggregation_s3" {
+#   description = "[Required] S3 details where logs are stored"
+#   type = object({
+#     bucket_name = string
+#     kms_key_arn = string
+#   })
+# }

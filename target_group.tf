@@ -1,6 +1,6 @@
 resource "aws_lb_target_group" "main" {
   count       = var.attach_lb ? 1 : 0
-  name        = substr(var.service_name, 0, min(32, length(var.service_name)))
+  name        = substr(local.service_name, 0, min(32, length(local.service_name)))
   port        = var.service_port
   protocol    = var.service_port == 443 ? "HTTPS" : "HTTP"
   vpc_id      = var.vpc_id
@@ -16,8 +16,8 @@ resource "aws_lb_target_group" "main" {
   }
 
   tags = merge({
-    Name = "${var.service_name}-tg"
-  }, var.custom_tags)
+    Name = "${local.service_name}-tg"
+  }, local.tags)
 
   provider = aws.service
 }

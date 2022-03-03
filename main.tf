@@ -1,5 +1,18 @@
+locals {
+  environment  = var.environment
+  service_name = "${var.prefix}-${var.environment}-${var.name}"
+
+  tags = merge(
+    {
+      "Environment" = local.environment,
+      "Terraform"   = "true"
+    },
+    var.custom_tags
+  )
+}
+
 resource "aws_ecs_service" "public_service" {
-  name            = var.service_name
+  name            = "${local.service_name}-service"
   cluster         = local.ecs_cluster_arn
   task_definition = (local.is_apm_enabled ? aws_ecs_task_definition.service_with_apm[0].arn : aws_ecs_task_definition.service[0].arn)
   desired_count   = var.service_count
@@ -14,12 +27,12 @@ resource "aws_ecs_service" "public_service" {
 
   service_registries {
     registry_arn   = aws_service_discovery_service.service.arn
-    container_name = var.service_name
+    container_name = local.service_name
   }
 
   load_balancer {
     target_group_arn = aws_lb_target_group.main[0].arn
-    container_name   = var.service_name
+    container_name   = local.service_name
     container_port   = var.service_port
   }
 
@@ -29,14 +42,14 @@ resource "aws_ecs_service" "public_service" {
   }
 
   tags = merge({
-    Name = var.service_name
-  }, var.custom_tags)
+    Name = local.service_name
+  }, local.tags)
 
   provider = aws.service
 }
 
 resource "aws_ecs_service" "private_service" {
-  name            = var.service_name
+  name            = "${local.service_name}-service"
   cluster         = local.ecs_cluster_arn
   task_definition = (local.is_apm_enabled ? aws_ecs_task_definition.service_with_apm[0].arn : aws_ecs_task_definition.service[0].arn)
   desired_count   = var.service_count
@@ -52,7 +65,7 @@ resource "aws_ecs_service" "private_service" {
 
   service_registries {
     registry_arn   = aws_service_discovery_service.service.arn
-    container_name = var.service_name
+    container_name = local.service_name
   }
 
   lifecycle {
@@ -60,15 +73,15 @@ resource "aws_ecs_service" "private_service" {
   }
 
   tags = merge({
-    Name = var.service_name
-  }, var.custom_tags)
+    Name = local.service_name
+  }, local.tags)
 
   provider = aws.service
 }
 
 resource "aws_ecs_task_definition" "service" {
   count                    = local.is_apm_enabled ? 0 : 1
-  family                   = var.service_name
+  family                   = local.service_name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu
@@ -82,7 +95,7 @@ resource "aws_ecs_task_definition" "service" {
     memory                  = var.memory
     log_group_name          = local.log_group_name
     region                  = data.aws_region.active.name
-    service_name            = var.service_name
+    service_name            = local.service_name
     service_port            = var.service_port
     envvars                 = jsonencode(var.envvars)
     secrets_task_definition = jsonencode(local.secrets_task_definition)
@@ -90,15 +103,15 @@ resource "aws_ecs_task_definition" "service" {
 
 
   tags = merge({
-    Name = var.service_name
-  }, var.custom_tags)
+    Name = local.service_name
+  }, local.tags)
 
   provider = aws.service
 }
 
 resource "aws_ecs_task_definition" "service_with_apm" {
   count                    = local.is_apm_enabled ? 1 : 0
-  family                   = var.service_name
+  family                   = local.service_name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu + var.apm_config.cpu
@@ -112,7 +125,7 @@ resource "aws_ecs_task_definition" "service_with_apm" {
     memory                  = var.memory
     log_group_name          = local.log_group_name
     region                  = data.aws_region.active.name
-    service_name            = var.service_name
+    service_name            = local.service_name
     service_port            = var.service_port
     envvars                 = jsonencode(var.envvars)
     secrets_task_definition = jsonencode(local.secrets_task_definition)
@@ -125,14 +138,14 @@ resource "aws_ecs_task_definition" "service_with_apm" {
 
 
   tags = merge({
-    Name = var.service_name
-  }, var.custom_tags)
+    Name = local.service_name
+  }, local.tags)
 
   provider = aws.service
 }
 
 resource "aws_service_discovery_service" "service" {
-  name = var.service_name
+  name = local.service_name
 
   dns_config {
     namespace_id = var.service_discovery_namespace

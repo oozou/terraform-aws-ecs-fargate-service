@@ -1,10 +1,10 @@
 resource "aws_iam_role" "task_role" {
-  name               = "${var.service_name}-ecs-task"
+  name               = "${local.service_name}-ecs-task-role"
   assume_role_policy = data.aws_iam_policy_document.task_assume_role_policy.json
 
   tags = merge({
-    Name = "${var.service_name}-task"
-  }, var.custom_tags)
+    Name = "${local.service_name}-task-role"
+  }, local.tags)
 
   provider = aws.service
 }

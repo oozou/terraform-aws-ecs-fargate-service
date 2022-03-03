@@ -1,11 +1,11 @@
 module "secret_kms_key" {
   source = "git@github.com:oozou/terraform-aws-kms-key.git?ref=v0.0.1"
 
-  alias_name           = "${var.service_name}-service-secrets"
+  alias_name           = "${local.service_name}-service-secrets"
   append_random_suffix = true
   custom_tags          = var.custom_tags
   key_type             = "service"
-  description          = "Secure Secrets Manager's service secrets for service ${var.service_name}"
+  description          = "Secure Secrets Manager's service secrets for service ${local.service_name}"
 
   service_key_info = {
     # aws_service_names  = list(format("secretsmanager.%s.amazonaws.com", data.aws_region.active.name))
@@ -29,13 +29,13 @@ resource "random_string" "service_secret_random_suffix" {
 resource "aws_secretsmanager_secret" "service_secrets" {
   for_each = var.secrets
 
-  name        = "${var.service_name}/${lower(each.key)}-${random_string.service_secret_random_suffix.result}"
-  description = "Secret 'secret_${lower(each.key)}' for service ${var.service_name}"
+  name        = "${local.service_name}/${lower(each.key)}-${random_string.service_secret_random_suffix.result}"
+  description = "Secret 'secret_${lower(each.key)}' for service ${local.service_name}"
   kms_key_id  = module.secret_kms_key.key_arn
 
   tags = merge({
-    Name = "${var.service_name}/${each.key}"
-  }, var.custom_tags)
+    Name = "${local.service_name}/${each.key}"
+  }, local.tags)
 
   provider = aws.service
 }
@@ -52,7 +52,7 @@ resource "aws_secretsmanager_secret_version" "service_secrets" {
 # inject them as environment variables in the service
 resource "aws_iam_role_policy" "task_execution_secrets" {
   for_each = var.secrets
-  name     = "${var.service_name}-ecs-task-execution-secrets"
+  name     = "${local.service_name}-ecs-task-execution-secrets"
   role     = aws_iam_role.task_execution.id
 
   policy = <<EOF

@@ -7,7 +7,7 @@ data "aws_region" "active" {
 }
 
 locals {
-  log_group_name = "${var.service_name}-service-log-group"
+  log_group_name = "${local.service_name}-service-log-group"
 
   ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.active.name}:${data.aws_caller_identity.active.account_id}:cluster/${var.ecs_cluster_name}"
   apm_name        = "xray-apm-sidecar"

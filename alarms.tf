@@ -1,7 +1,7 @@
 # module "sns" {
 #   source = "git@gitlab.com:mango-engineering/mango-infra-components/terraform-aws-sns-notifications?ref=v4.1.0"
 
-#   base_name   = var.service_name
+#   base_name   = local.service_name
 #   use_case    = "fargate"
 #   email_ids   = var.email_ids
 #   custom_tags = var.custom_tags
@@ -12,7 +12,7 @@
 # }
 
 # resource "aws_cloudwatch_metric_alarm" "public_service_cpu_utilization_too_high" {
-#   alarm_name          = "${var.service_name}-fargate-CPUUtilization"
+#   alarm_name          = "${local.service_name}-fargate-CPUUtilization"
 #   comparison_operator = "GreaterThanThreshold"
 #   evaluation_periods  = "1"
 #   metric_name         = "CPUUtilization"
@@ -31,14 +31,14 @@
 #   }
 
 #   tags = merge({
-#     Name = "${var.service_name}-fargate-cluster"
+#     Name = "${local.service_name}-fargate-cluster"
 #   }, var.custom_tags)
 
 #   provider = aws.service
 # }
 
 # resource "aws_cloudwatch_metric_alarm" "public_service_memory_utilization_too_high" {
-#   alarm_name          = "${var.service_name}-fargate-MemoryUtilization"
+#   alarm_name          = "${local.service_name}-fargate-MemoryUtilization"
 #   comparison_operator = "GreaterThanThreshold"
 #   evaluation_periods  = "1"
 #   metric_name         = "MemoryUtilization"
@@ -57,14 +57,14 @@
 #   }
 
 #   tags = merge({
-#     Name = "${var.service_name}-fargate-cluster"
+#     Name = "${local.service_name}-fargate-cluster"
 #   }, var.custom_tags)
 
 #   provider = aws.service
 # }
 
 # resource "aws_cloudwatch_metric_alarm" "private_service_cpu_utilization_too_high" {
-#   alarm_name          = "${var.service_name}-fargate-CPUUtilization"
+#   alarm_name          = "${local.service_name}-fargate-CPUUtilization"
 #   comparison_operator = "GreaterThanThreshold"
 #   evaluation_periods  = "1"
 #   metric_name         = "CPUUtilization"
@@ -83,14 +83,14 @@
 #   }
 
 #   tags = merge({
-#     Name = "${var.service_name}-fargate-cluster"
+#     Name = "${local.service_name}-fargate-cluster"
 #   }, var.custom_tags)
 
 #   provider = aws.service
 # }
 
 # resource "aws_cloudwatch_metric_alarm" "private_service_memory_utilization_too_high" {
-#   alarm_name          = "${var.service_name}-fargate-MemoryUtilization"
+#   alarm_name          = "${local.service_name}-fargate-MemoryUtilization"
 #   comparison_operator = "GreaterThanThreshold"
 #   evaluation_periods  = "1"
 #   metric_name         = "MemoryUtilization"
@@ -109,7 +109,7 @@
 #   }
 
 #   tags = merge({
-#     Name = "${var.service_name}-fargate-cluster"
+#     Name = "${local.service_name}-fargate-cluster"
 #   }, var.custom_tags)
 
 #   provider = aws.service
