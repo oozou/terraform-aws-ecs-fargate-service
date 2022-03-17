@@ -98,6 +98,9 @@ module "service" {
       "SECRET_THIS": "${jsonencode(local.secret_this_value)}"
       "SECRET_THAT": "${jsonencode(local.secret_that_value)}"
     }
+  json_secrets = {
+    
+  }
 }
 ```
 
