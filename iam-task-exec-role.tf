@@ -4,7 +4,7 @@ resource "aws_iam_role" "task_execution" {
 
   tags = merge({
     Name = "${local.service_name}-task-execution-role"
-  },local.tags)
+  }, local.tags)
 
   provider = aws.service
 }
@@ -30,4 +30,3 @@ resource "aws_iam_role_policy_attachment" "task_execution" {
 
   provider = aws.service
 }
-

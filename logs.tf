@@ -9,4 +9,3 @@ resource "aws_cloudwatch_log_group" "main" {
 
   provider = aws.service
 }
-

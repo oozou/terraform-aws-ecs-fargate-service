@@ -9,8 +9,8 @@ data "aws_region" "active" {
 locals {
   log_group_name = "${local.service_name}-service-log-group"
 
-  ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.active.name}:${data.aws_caller_identity.active.account_id}:cluster/${var.ecs_cluster_name}"
-  apm_name        = "xray-apm-sidecar"
+  ecs_cluster_arn        = "arn:aws:ecs:${data.aws_region.active.name}:${data.aws_caller_identity.active.account_id}:cluster/${var.ecs_cluster_name}"
+  apm_name               = "xray-apm-sidecar"
   enable_alb_host_header = var.alb_host_header != null ? true : false
 
 }
@@ -33,7 +33,7 @@ locals {
   # Create secrets format for Task Definition 
   secrets_task_unique_definition = [for secret_key, secret_arn in local.secrets_name_arn_map :
     tomap({
-      name = upper(secret_key)
+      name      = upper(secret_key)
       valueFrom = secret_arn
     })
   ]
@@ -51,14 +51,14 @@ locals {
   # Create secrets JSON format for Task Definition 
   secrets_json_task_definition = [for secret_key, secret_arn in local.secrets_name_json_arn_map :
     tomap({
-      name = upper(secret_key)
+      name      = upper(secret_key)
       valueFrom = secret_arn
     })
   ]
 
-# Concat Secret and JSON Secret to the one list.
-secrets_task_definition = concat(local.secrets_task_unique_definition, local.secrets_json_task_definition)
-  
+  # Concat Secret and JSON Secret to the one list.
+  secrets_task_definition = concat(local.secrets_task_unique_definition, local.secrets_json_task_definition)
+
 }
 
 locals {
