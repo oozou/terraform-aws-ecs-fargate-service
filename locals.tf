@@ -26,13 +26,26 @@ locals {
   secrets_name_arn_map = zipmap(local.secret_names, local.secret_manager_arns)
   #
   # Create secrets format for Task Definition 
-  #     map("name", upper(secret_key), "valueFrom", secret_arn)
-  secrets_task_definition = [for secret_key, secret_arn in local.secrets_name_arn_map :
+  secrets_task_unique_definition = [for secret_key, secret_arn in local.secrets_name_arn_map :
     tomap({
       name = upper(secret_key)
       valueFrom = secret_arn
     })
   ]
+
+  secret_manager_json_arns = aws_secretsmanager_secret.service_json_secrets.arn
+  secrets_name_json_arn_map = { "JSON_SECRET" : local.secret_manager_json_arns }
+
+  # Create secrets json format for Task Definition 
+  secrets_json_task_definition = [for secret_key, secret_arn in local.secrets_name_json_arn_map :
+    tomap({
+      name = upper(secret_key)
+      valueFrom = secret_arn
+    })
+  ]
+
+secrets_task_definition = concat(local.secrets_task_unique_definition, local.secrets_json_task_definition)
+  
 }
 
 locals {
