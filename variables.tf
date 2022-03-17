@@ -145,12 +145,6 @@ variable "health_check" {
   }
 }
 
-# variable "secrets" {
-#   description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
-#   type        = map(any)
-#   default     = {}
-# }
-
 variable "secrets" {
   description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
   type        = map(any)
