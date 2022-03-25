@@ -16,11 +16,11 @@ resource "aws_lb_listener_rule" "main" {
 
   dynamic "condition" {
     for_each = local.enable_alb_host_header ? [true] : []
-      content {
-          host_header {
-            values = [var.alb_host_header]
-          }
+    content {
+      host_header {
+        values = [var.alb_host_header]
       }
+    }
   }
 
   provider = aws.service

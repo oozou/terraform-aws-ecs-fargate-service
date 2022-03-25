@@ -38,4 +38,3 @@ resource "aws_iam_role_policy_attachment" "task_role_xray" {
 
   provider = aws.service
 }
-

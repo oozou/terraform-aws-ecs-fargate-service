@@ -151,6 +151,12 @@ variable "secrets" {
   default     = {}
 }
 
+variable "json_secrets" {
+  description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
+  type        = map(string)
+  default     = {}
+}
+
 variable "account_alias" {
   description = "Alias of the AWS account where this service is created. Eg. alpha/beta/prod. This would be used create s3 bucket path in the logging account"
   type        = string

@@ -8,7 +8,6 @@ module "secret_kms_key" {
   description          = "Secure Secrets Manager's service secrets for service ${local.service_name}"
 
   service_key_info = {
-    # aws_service_names  = list(format("secretsmanager.%s.amazonaws.com", data.aws_region.active.name))
     aws_service_names  = tolist([format("secretsmanager.%s.amazonaws.com", data.aws_region.active.name)])
     caller_account_ids = tolist([data.aws_caller_identity.active.account_id])
   }
@@ -25,6 +24,10 @@ resource "random_string" "service_secret_random_suffix" {
   length  = 6
   special = false
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                   SECRET                                   */
+/* -------------------------------------------------------------------------- */
 
 resource "aws_secretsmanager_secret" "service_secrets" {
   for_each = var.secrets
@@ -48,12 +51,36 @@ resource "aws_secretsmanager_secret_version" "service_secrets" {
   provider = aws.service
 }
 
+
+/* -------------------------------------------------------------------------- */
+/*                                 JSON SECRET                                */
+/* -------------------------------------------------------------------------- */
+
+resource "aws_secretsmanager_secret" "service_json_secrets" {
+  name        = "${local.service_name}/${random_string.service_secret_random_suffix.result}"
+  description = "Secret for service ${local.service_name}"
+  kms_key_id  = module.secret_kms_key.key_arn
+
+  tags = merge({
+    Name = "${local.service_name}"
+  }, local.tags)
+
+  provider = aws.service
+}
+
+resource "aws_secretsmanager_secret_version" "service_json_secrets" {
+  secret_id     = aws_secretsmanager_secret.service_json_secrets.id
+  secret_string = jsonencode(var.json_secrets)
+
+  provider = aws.service
+}
+
+
 # We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
 # inject them as environment variables in the service
 resource "aws_iam_role_policy" "task_execution_secrets" {
-  for_each = var.secrets
-  name     = "${local.service_name}-ecs-task-execution-secrets"
-  role     = aws_iam_role.task_execution.id
+  name = "${local.service_name}-ecs-task-execution-secrets"
+  role = aws_iam_role.task_execution.id
 
   policy = <<EOF
 {
@@ -61,7 +88,7 @@ resource "aws_iam_role_policy" "task_execution_secrets" {
       {
         "Effect": "Allow",
         "Action": ["secretsmanager:GetSecretValue"],
-        "Resource": ${jsonencode(local.secret_manager_arns)}
+        "Resource": ${jsonencode(local.secret_manager_json_arns)}
       }
     ]
 }

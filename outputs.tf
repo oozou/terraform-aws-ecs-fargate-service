@@ -18,6 +18,11 @@ output "task_execution_role_arn" {
   value       = aws_iam_role.task_execution.arn
 }
 
+output "secret_json_arns" {
+  description = "List of ARNs of the SecretsManager json secrets"
+  value       = local.secret_manager_json_arns
+}
+
 output "secret_arns" {
   description = "List of ARNs of the SecretsManager secrets"
   value       = local.secret_manager_arns
