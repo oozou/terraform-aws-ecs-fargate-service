@@ -86,8 +86,8 @@ resource "aws_ecs_task_definition" "service" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu
   memory                   = var.memory
-  execution_role_arn       = aws_iam_role.task_execution.arn
-  task_role_arn            = aws_iam_role.task_role.arn
+  execution_role_arn       = local.task_execution_role_arn
+  task_role_arn            = local.task_role_arn
 
   container_definitions = templatefile("${path.module}/task-definitions/service-main-container.json", {
     cpu                     = var.cpu
@@ -116,8 +116,8 @@ resource "aws_ecs_task_definition" "service_with_apm" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu + var.apm_config.cpu
   memory                   = var.memory + var.apm_config.memory
-  execution_role_arn       = aws_iam_role.task_execution.arn
-  task_role_arn            = aws_iam_role.task_role.arn
+  execution_role_arn       = local.task_execution_role_arn
+  task_role_arn            = local.task_role_arn
 
   container_definitions = templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", {
     cpu                     = var.cpu

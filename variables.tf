@@ -188,6 +188,26 @@ variable "apm_config" {
   }
 }
 
+
+variable "is_create_iam_role" {
+  description = ""
+  type        = bool
+  default     = true
+}
+
+variable "exists_task_role_arn" {
+  description = ""
+  type        = string
+  default     = null
+}
+
+variable "exists_task_execution_role_arn" {
+  description = ""
+  type        = string
+  default     = null
+}
+
+
 # variable "log_aggregation_s3" {
 #   description = "[Required] S3 details where logs are stored"
 #   type = object({

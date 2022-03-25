@@ -1,4 +1,5 @@
 resource "aws_iam_role" "task_execution" {
+  count = var.is_create_iam_role ? 1 : 0
   name               = "${local.service_name}-ecs-task-execution-role"
   assume_role_policy = data.aws_iam_policy_document.task_execution_assume_role_policy.json
 
@@ -25,7 +26,8 @@ data "aws_iam_policy_document" "task_execution_assume_role_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "task_execution" {
-  role       = aws_iam_role.task_execution.id
+  # role       = aws_iam_role.task_execution.id
+  role       = local.task_execution_role_id
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 
   provider = aws.service

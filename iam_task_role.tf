@@ -1,4 +1,5 @@
 resource "aws_iam_role" "task_role" {
+  count = var.is_create_iam_role ? 1 : 0
   name               = "${local.service_name}-ecs-task-role"
   assume_role_policy = data.aws_iam_policy_document.task_assume_role_policy.json
 
@@ -26,14 +27,15 @@ data "aws_iam_policy_document" "task_assume_role_policy" {
 
 resource "aws_iam_role_policy_attachment" "task_role" {
   for_each   = var.ecs_task_role_policy_arns
-  role       = aws_iam_role.task_role.id
+  role       = local.task_role_id
   policy_arn = each.value
 
   provider = aws.service
 }
 
 resource "aws_iam_role_policy_attachment" "task_role_xray" {
-  role       = aws_iam_role.task_role.id
+  # count = var.is_create_db_instance ? 1 : 0
+  role       = local.task_role_id
   policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
 
   provider = aws.service
