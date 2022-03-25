@@ -190,19 +190,19 @@ variable "apm_config" {
 
 
 variable "is_create_iam_role" {
-  description = ""
+  description = "Create the built in IAM role for task role and task exec role"
   type        = bool
   default     = true
 }
 
 variable "exists_task_role_arn" {
-  description = ""
+  description = "The existing arn of task role"
   type        = string
   default     = null
 }
 
 variable "exists_task_execution_role_arn" {
-  description = ""
+  description = "The existing arn of task exec role"
   type        = string
   default     = null
 }
