@@ -3,7 +3,7 @@ module "secret_kms_key" {
 
   alias_name           = "${local.service_name}-service-secrets"
   append_random_suffix = true
-  custom_tags          = var.custom_tags
+  custom_tags          = local.tags
   key_type             = "service"
   description          = "Secure Secrets Manager's service secrets for service ${local.service_name}"
 

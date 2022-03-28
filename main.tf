@@ -7,7 +7,7 @@ locals {
       "Environment" = local.environment,
       "Terraform"   = "true"
     },
-    var.custom_tags
+    var.tags
   )
 }
 
