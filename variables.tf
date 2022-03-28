@@ -17,6 +17,12 @@ variable "prefix" {
   type        = string
 }
 
+variable "tags" {
+  description = "Custom tags which can be passed on to the AWS resources. They should be key value pairs having distinct keys"
+  type        = map(any)
+  default     = {}
+}
+
 /* -------------------------------------------------------------------------- */
 /*                               Fargate Service                              */
 /* -------------------------------------------------------------------------- */
@@ -160,12 +166,6 @@ variable "json_secrets" {
 variable "account_alias" {
   description = "Alias of the AWS account where this service is created. Eg. alpha/beta/prod. This would be used create s3 bucket path in the logging account"
   type        = string
-}
-
-variable "custom_tags" {
-  description = "Custom tags which can be passed on to the AWS resources. They should be key value pairs having distinct keys"
-  type        = map(any)
-  default     = {}
 }
 
 variable "apm_sidecar_ecr_url" {
