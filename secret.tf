@@ -91,7 +91,7 @@ resource "aws_iam_role_policy" "task_execution_secrets" {
       {
         "Effect": "Allow",
         "Action": ["secretsmanager:GetSecretValue"],
-        "Resource": ${jsonencode(split("/",local.secret_manager_json_arns)[0]+"/*")}
+        "Resource": ${split("/",local.secret_manager_json_arns)[0]+"/*"}
       }
     ]
 }
