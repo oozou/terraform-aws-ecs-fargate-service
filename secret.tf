@@ -82,16 +82,16 @@ resource "aws_iam_role_policy" "task_execution_secrets" {
   count = var.is_create_iam_role ? 1 : 0
 
   name = "${local.service_name}-ecs-task-execution-secrets"
-  # role = aws_iam_role.task_execution.id
+  # role = aws_iam_role.task_execution.id ${jsonencode(local.secret_manager_json_arns)}
   role = local.task_execution_role_id
 
-  policy = <<EOF
+  policy = <<EOFsplit
 {
     "Statement": [
       {
         "Effect": "Allow",
         "Action": ["secretsmanager:GetSecretValue"],
-        "Resource": ${jsonencode(local.secret_manager_json_arns)}
+        "Resource": ${jsonencode(split("/",local.secret_manager_json_arns)[0]+"/*")}
       }
     ]
 }
