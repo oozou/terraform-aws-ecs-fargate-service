@@ -13,6 +13,12 @@ locals {
   apm_name               = "xray-apm-sidecar"
   enable_alb_host_header = var.alb_host_header != null ? true : false
 
+  task_role_arn       = !var.is_create_iam_role && var.exists_task_role_arn != null  ? var.exists_task_role_arn : aws_iam_role.task_role[0].arn
+  task_role_id        = split("/",local.task_role_arn)[1]
+
+  task_execution_role_arn       = !var.is_create_iam_role && var.exists_task_execution_role_arn != null  ? var.exists_task_execution_role_arn : aws_iam_role.task_execution[0].arn
+  task_execution_role_id        = split("/",local.task_execution_role_arn)[1]
+
 }
 
 locals {
