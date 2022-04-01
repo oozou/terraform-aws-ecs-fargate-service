@@ -1,7 +1,7 @@
-provider "aws" {
-  alias = "service"
-}
+# provider "aws" {
+#   alias = "service"
+# }
 
-provider "aws" {
-  alias = "logging"
-}
+# provider "aws" {
+#   alias = "logging"
+# }
