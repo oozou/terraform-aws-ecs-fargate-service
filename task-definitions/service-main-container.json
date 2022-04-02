@@ -1,26 +1,32 @@
 [
-    {
-       "cpu":${cpu},
-       "image":"${service_image}",
-       "memory":${memory},
-       "name":"${service_name}",
-       "networkMode":"awsvpc",
-       "essential":true,
-       "logConfiguration":{
-          "logDriver":"awslogs",
-          "options":{
-             "awslogs-group":"${log_group_name}",
-             "awslogs-region":"${region}",
-             "awslogs-stream-prefix":"${service_name}"
-          }
-       },
-       "portMappings":[
-          {
-             "containerPort":${service_port},
-             "hostPort":${service_port}
-          }
-       ],
-       "environment" : ${envvars},
-       "secrets" : ${secrets_task_definition}
+  {
+    "cpu":${cpu
+    },
+    "image": "${service_image}",
+    "memory":${memory
+    },
+    "name": "${service_name}",
+    "networkMode": "awsvpc",
+    "essential": true,
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "${log_group_name}",
+        "awslogs-region": "${region}",
+        "awslogs-stream-prefix": "${service_name}"
+      }
+    },
+    "portMappings": [
+      {
+        "containerPort":${service_port
+        },
+        "hostPort":${service_port
+        }
+      }
+    ],
+    "environment": ${envvars
+    },
+    "secrets": ${secrets_task_definition
     }
- ]
+  }
+]

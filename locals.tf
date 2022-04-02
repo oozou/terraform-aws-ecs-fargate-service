@@ -1,25 +1,3 @@
-# data "aws_caller_identity" "active" {
-#   provider = aws.service
-# }
-
-# data "aws_region" "active" {
-#   provider = aws.service
-# }
-
-# locals {
-#   log_group_name = "${local.service_name}-service-log-group"
-
-#   ecs_cluster_arn        = "arn:aws:ecs:${data.aws_region.active.name}:${data.aws_caller_identity.active.account_id}:cluster/${var.ecs_cluster_name}"
-#   apm_name               = "xray-apm-sidecar"
-#   enable_alb_host_header = var.alb_host_header != null ? true : false
-
-#   task_role_arn       = !var.is_create_iam_role && var.exists_task_role_arn != null  ? var.exists_task_role_arn : aws_iam_role.task_role[0].arn
-#   task_role_id        = split("/",local.task_role_arn)[1]
-
-#   task_execution_role_arn       = !var.is_create_iam_role && var.exists_task_execution_role_arn != null  ? var.exists_task_execution_role_arn : aws_iam_role.task_execution[0].arn
-#   task_execution_role_id        = split("/",local.task_execution_role_arn)[1]
-
-# }
 
 # locals {
 
@@ -65,8 +43,4 @@
 #   # Concat Secret and JSON Secret to the one list.
 #   secrets_task_definition = concat(local.secrets_task_unique_definition, local.secrets_json_task_definition)
 
-# }
-
-# locals {
-#   is_apm_enabled = signum(length(trimspace(var.apm_sidecar_ecr_url))) == 1
 # }

@@ -22,6 +22,37 @@ variable "tags" {
   default     = {}
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                  Task Role                                 */
+/* -------------------------------------------------------------------------- */
+variable "is_create_iam_role" {
+  description = "Create the built in IAM role for task role and task exec role"
+  type        = bool
+  default     = true
+}
+
+variable "exists_task_role_arn" {
+  description = "The existing arn of task role"
+  type        = string
+  default     = ""
+}
+
+variable "ecs_task_role_policy_arns" {
+  description = "Map of policies ARNs to attach to the ECS Task Role. eg: { rds_arn = module.postgres_db.rds_policy_arn }"
+  type        = list(string)
+  default     = []
+}
+
+
+
+
+
+
+
+
+
+
+
 # /* -------------------------------------------------------------------------- */
 # /*                               Fargate Service                              */
 # /* -------------------------------------------------------------------------- */
@@ -90,12 +121,6 @@ variable "tags" {
 # variable "ecs_cluster_name" {
 #   description = "ECS Cluster name to deploy in"
 #   type        = string
-# }
-
-# variable "ecs_task_role_policy_arns" {
-#   description = "Map of policies ARNs to attach to the ECS Task Role. eg: { rds_arn = module.postgres_db.rds_policy_arn }"
-#   type        = map(string)
-#   default     = {}
 # }
 
 # variable "service_discovery_namespace" {
@@ -187,18 +212,6 @@ variable "tags" {
 #   }
 # }
 
-
-# variable "is_create_iam_role" {
-#   description = "Create the built in IAM role for task role and task exec role"
-#   type        = bool
-#   default     = true
-# }
-
-# variable "exists_task_role_arn" {
-#   description = "The existing arn of task role"
-#   type        = string
-#   default     = null
-# }
 
 # variable "exists_task_execution_role_arn" {
 #   description = "The existing arn of task exec role"
