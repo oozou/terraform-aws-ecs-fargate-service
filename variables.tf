@@ -23,7 +23,7 @@ variable "tags" {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                  Task Role                                 */
+/*                                    Role                                    */
 /* -------------------------------------------------------------------------- */
 variable "is_create_iam_role" {
   description = "Create the built in IAM role for task role and task exec role"
@@ -31,14 +31,32 @@ variable "is_create_iam_role" {
   default     = true
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                  Task Role                                 */
+/* -------------------------------------------------------------------------- */
 variable "exists_task_role_arn" {
   description = "The existing arn of task role"
   type        = string
   default     = ""
 }
 
-variable "ecs_task_role_policy_arns" {
-  description = "Map of policies ARNs to attach to the ECS Task Role. eg: { rds_arn = module.postgres_db.rds_policy_arn }"
+variable "additional_ecs_task_role_policy_arns" {
+  description = "List of policies ARNs to attach to the ECS Task Role. eg: { rds_arn = module.postgres_db.rds_policy_arn }"
+  type        = list(string)
+  default     = []
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               Task Exec Role                               */
+/* -------------------------------------------------------------------------- */
+variable "exists_task_execution_role_arn" {
+  description = "The existing arn of task exec role"
+  type        = string
+  default     = null
+}
+
+variable "additional_ecs_task_execution_role_policy_arns" {
+  description = "List of policies ARNs to attach to the ECS Task Role. eg: { rds_arn = module.postgres_db.rds_policy_arn }"
   type        = list(string)
   default     = []
 }
@@ -211,14 +229,6 @@ variable "ecs_task_role_policy_arns" {
 #     memory       = 512
 #   }
 # }
-
-
-# variable "exists_task_execution_role_arn" {
-#   description = "The existing arn of task exec role"
-#   type        = string
-#   default     = null
-# }
-
 
 # # variable "log_aggregation_s3" {
 # #   description = "[Required] S3 details where logs are stored"

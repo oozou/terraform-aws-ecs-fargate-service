@@ -11,13 +11,19 @@
 locals {
   service_name = format("%s-%s-%s", var.prefix, var.environment, var.name)
 
-  # IAM Role
+  # Task Role
   task_role_arn                     = var.is_create_iam_role ? aws_iam_role.task_role[0].arn : var.exists_task_role_arn
   task_role_name                    = try(split("/", local.task_role_arn)[1], "")
   task_role_id                      = local.task_role_name
   ecs_default_task_role_policy_arns = ["arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"]
-  ecs_task_role_policy_arns         = toset(concat(var.ecs_task_role_policy_arns, local.ecs_default_task_role_policy_arns))
+  ecs_task_role_policy_arns         = toset(concat(var.additional_ecs_task_role_policy_arns, local.ecs_default_task_role_policy_arns))
 
+  # Task Exec Role
+  task_execution_role_arn                     = var.is_create_iam_role ? aws_iam_role.task_execution_role[0].arn : var.exists_task_execution_role_arn
+  task_execution_role_name                    = try(split("/", local.task_execution_role_arn)[1], "")
+  task_execution_role_id                      = local.task_execution_role_name
+  ecs_default_task_execution_role_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
+  ecs_task_execution_role_policy_arns         = toset(concat(var.additional_ecs_task_execution_role_policy_arns, local.ecs_default_task_execution_role_policy_arns))
 
 
 
@@ -47,7 +53,8 @@ locals {
 }
 /* ----------------------------- Raise Xondition ---------------------------- */
 locals {
-  raise_task_role_arn_required = !var.is_create_iam_role && length(var.exists_task_role_arn) == 0 ? file("Variable `exists_task_role_arn` is required when `is_create_iam_role` is false") : "pass"
+  raise_task_role_arn_required           = !var.is_create_iam_role && length(var.exists_task_role_arn) == 0 ? file("Variable `exists_task_role_arn` is required when `is_create_iam_role` is false") : "pass"
+  raise_task_execution_role_arn_required = !var.is_create_iam_role && length(var.exists_task_execution_role_arn) == 0 ? file("Variable `exists_task_execution_role_arn` is required when `is_create_iam_role` is false") : "pass"
 }
 /* -------------------------------------------------------------------------- */
 /*                                  Task Role                                 */
@@ -92,39 +99,47 @@ data "aws_iam_role" "get_ecs_task_role" {
 /* -------------------------------------------------------------------------- */
 /*                               Task Exec Role                               */
 /* -------------------------------------------------------------------------- */
-# resource "aws_iam_role" "task_execution" {
-#   count = var.is_create_iam_role ? 1 : 0
-#   name               = "${local.service_name}-ecs-task-execution-role"
-#   assume_role_policy = data.aws_iam_policy_document.task_execution_assume_role_policy.json
+data "aws_iam_policy_document" "task_execution_assume_role_policy" {
+  count = var.is_create_iam_role ? 1 : 0
 
-#   tags = merge({
-#     Name = "${local.service_name}-task-execution-role"
-#   }, local.tags)
+  statement {
+    sid     = ""
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
 
-#   provider = aws.service
-# }
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
 
-# data "aws_iam_policy_document" "task_execution_assume_role_policy" {
-#   statement {
-#     sid     = ""
-#     effect  = "Allow"
-#     actions = ["sts:AssumeRole"]
+resource "aws_iam_role" "task_execution_role" {
+  count = var.is_create_iam_role ? 1 : 0
 
-#     principals {
-#       type        = "Service"
-#       identifiers = ["ecs-tasks.amazonaws.com"]
-#     }
-#   }
+  name               = format("%s-ecs-task-execution-role", local.service_name)
+  assume_role_policy = data.aws_iam_policy_document.task_execution_assume_role_policy[0].json
 
-#   provider = aws.service
-# }
+  tags = merge(local.tags, { "Name" = format("%s-ecs-task-execution-role", local.service_name) })
+}
+
+resource "aws_iam_role_policy_attachment" "task_execution_role" {
+  for_each = var.is_create_iam_role ? local.ecs_task_execution_role_policy_arns : []
+
+  role       = local.task_execution_role_name
+  policy_arn = each.value
+}
+/* -------------------------------- Validator ------------------------------- */
+data "aws_iam_role" "get_ecs_task_execution_role" {
+  count = !var.is_create_iam_role ? 1 : 0
+
+  name = local.task_execution_role_name
+}
 
 # resource "aws_iam_role_policy_attachment" "task_execution" {
 #   # role       = aws_iam_role.task_execution.id
 #   role       = local.task_execution_role_id
 #   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-
-#   provider = aws.service
 # }
 
 /* -------------------------------------------------------------------------- */
