@@ -61,6 +61,73 @@ variable "additional_ecs_task_execution_role_policy_arns" {
   default     = []
 }
 
+/* -------------------------------------------------------------------------- */
+/*                            CloudWatch Log Group                            */
+/* -------------------------------------------------------------------------- */
+variable "is_create_cloudwatch_log_group" {
+  description = "Whether to create cloudwatch log group or not"
+  type        = bool
+  default     = true
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                LoadBalancer                                */
+/* -------------------------------------------------------------------------- */
+/* ----------------------------- LB Target Group ---------------------------- */
+variable "is_attach_service_with_lb" {
+  description = "Attach the container to the public ALB? (true/false)"
+  type        = bool
+}
+
+variable "vpc_id" {
+  description = "VPC id where security group is created"
+  type        = string
+  default     = ""
+}
+
+variable "service_port" {
+  description = "Port for the service to listen on"
+  type        = number
+  default     = null
+}
+
+variable "health_check" {
+  description = "Health Check Config for the service"
+  type        = map(string)
+  default     = {}
+  # default = {
+  #   interval            = 20
+  #   path                = ""
+  #   timeout             = 10
+  #   healthy_threshold   = 3
+  #   unhealthy_threshold = 3
+  #   matcher             = "200,201,204"
+  # }
+}
+/* ------------------------------ Listener Rule ----------------------------- */
+variable "alb_listener_arn" {
+  description = "The ALB listener to attach to"
+  type        = string
+  default     = ""
+}
+
+variable "alb_host_header" {
+  description = "Mention host header for api endpoint"
+  type        = string
+  default     = null
+}
+
+variable "alb_path" {
+  description = "Mention Path For ALB routing eg: / or /route1"
+  type        = string
+  default     = ""
+}
+
+variable "alb_priority" {
+  description = "Priority of ALB rule https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#listener-rules"
+  type        = string
+  default     = "100"
+}
 
 
 
@@ -92,11 +159,6 @@ variable "additional_ecs_task_execution_role_policy_arns" {
 #   default     = 1
 # }
 
-# variable "service_port" {
-#   description = "Port for the service to listen on"
-#   type        = number
-# }
-
 # variable "cpu" {
 #   description = "CPU (MHz) to dedicate to each deployed container. See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html for valid value for Fargate tasks. For Eg: 512 "
 #   type        = string
@@ -105,35 +167,6 @@ variable "additional_ecs_task_execution_role_policy_arns" {
 # variable "memory" {
 #   description = "Memory to dedicate to each deployed container. See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html for valid value for Fargate tasks. For Eg: 512"
 #   type        = string
-# }
-
-# variable "attach_lb" {
-#   description = "Attach the container to the public ALB? (true/false)"
-#   type        = bool
-# }
-
-# variable "alb_listener_arn" {
-#   description = "The ALB listener to attach to"
-#   type        = string
-#   default     = ""
-# }
-
-# variable "alb_path" {
-#   description = "Mention Path For ALB routing eg: / or /route1"
-#   type        = string
-#   default     = ""
-# }
-
-# variable "alb_host_header" {
-#   description = "Mention host header for api endpoint"
-#   type        = string
-#   default     = null
-# }
-
-# variable "alb_priority" {
-#   description = "Priority of ALB rule https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#listener-rules"
-#   type        = string
-#   default     = "100"
 # }
 
 # variable "ecs_cluster_name" {
@@ -149,11 +182,6 @@ variable "additional_ecs_task_execution_role_policy_arns" {
 # variable "security_groups" {
 #   description = "Security groups to apply to service"
 #   type        = list(string)
-# }
-
-# variable "vpc_id" {
-#   description = "VPC id where security group is created"
-#   type        = string
 # }
 
 # variable "subnets" {
@@ -177,20 +205,6 @@ variable "additional_ecs_task_execution_role_policy_arns" {
 #   description = "List of email ids where alerts are to be published"
 #   type        = list(string)
 #   default     = []
-# }
-
-# variable "health_check" {
-#   description = "Health Check Config for the service"
-#   type        = map(string)
-
-#   default = {
-#     interval            = 20
-#     path                = ""
-#     timeout             = 10
-#     healthy_threshold   = 3
-#     unhealthy_threshold = 3
-#     matcher             = "200,201,204"
-#   }
 # }
 
 # variable "secrets" {
