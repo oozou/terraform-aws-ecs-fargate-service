@@ -25,11 +25,8 @@ locals {
   ecs_default_task_execution_role_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
   ecs_task_execution_role_policy_arns         = toset(concat(var.additional_ecs_task_execution_role_policy_arns, local.ecs_default_task_execution_role_policy_arns))
 
-  # ALB
-
-
-
-  # log_group_name = format("%s-service-log-group", local.service_name)
+  # Logging
+  log_group_name = format("%s-service-log-group", local.service_name)
 
   # ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:cluster/${var.ecs_cluster_name}"
   # apm_name               = "xray-apm-sidecar"
@@ -141,10 +138,10 @@ data "aws_iam_role" "get_ecs_task_execution_role" {
 resource "aws_cloudwatch_log_group" "this" {
   count = var.is_create_cloudwatch_log_group ? 1 : 0
 
-  name              = format("%s-service-log-group", local.service_name)
+  name              = local.log_group_name
   retention_in_days = 30
 
-  tags = merge(local.tags, { "Name" = format("%s-service-log-group", local.service_name) })
+  tags = merge(local.tags, { "Name" = local.log_group_name })
 }
 
 /* -------------------------------------------------------------------------- */
