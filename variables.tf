@@ -79,16 +79,10 @@ variable "is_attach_service_with_lb" {
   type        = bool
 }
 
-variable "vpc_id" {
+variable "vpc_id" { #########
   description = "VPC id where security group is created"
   type        = string
   default     = ""
-}
-
-variable "service_port" {
-  description = "Port for the service to listen on"
-  type        = number
-  default     = null
 }
 
 variable "health_check" {
@@ -129,125 +123,97 @@ variable "alb_priority" {
   default     = "100"
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                   Secret                                   */
+/* -------------------------------------------------------------------------- */
+variable "secrets" {
+  description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
+  type        = map(string)
+  default     = {}
+}
 
+variable "json_secrets" {
+  description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
+  type        = map(string)
+  default     = {}
+}
 
+variable "envvars" {
+  description = "List of [{name = \"\", value = \"\"}] pairs of environment variables"
+  type = set(object({
+    name  = string
+    value = string
+  }))
+  default = [{
+    name  = "EXAMPLE_ENV"
+    value = "example"
+  }]
+}
 
+/* -------------------------------------------------------------------------- */
+/*                               Task Definition                              */
+/* -------------------------------------------------------------------------- */
+variable "service_info" {
+  description = "The configuration of service"
+  type = object({
+    cpu_allocation = number
+    mem_allocation = number
+    containers_num = number
+    port           = number
+    image          = string
+  })
+}
 
+variable "apm_sidecar_ecr_url" {
+  description = "[Optional] To enable APM, set Sidecar ECR URL"
+  type        = string
+  default     = ""
+}
 
+variable "apm_config" {
+  description = "Config for X-Ray sidecar container for APM and traceability"
+  type = object({
+    service_port = number
+    cpu          = number
+    memory       = number
+  })
+  default = {
+    service_port = 9000
+    cpu          = 256
+    memory       = 512
+  }
+}
+/* -------------------------------------------------------------------------- */
+/*                               Fargate Service                              */
+/* -------------------------------------------------------------------------- */
+variable "ecs_cluster_name" {
+  description = "ECS Cluster name to deploy in"
+  type        = string
+}
 
+variable "service_discovery_namespace" {
+  description = "DNS Namespace to deploy to"
+  type        = string
+}
 
+variable "service_count" {
+  description = "Number of containers to deploy"
+  type        = number
+  default     = 1
+}
 
+variable "is_enable_execute_command" {
+  description = "Specifies whether to enable Amazon ECS Exec for the tasks within the service."
+  type        = bool
+  default     = false
+}
 
-# /* -------------------------------------------------------------------------- */
-# /*                               Fargate Service                              */
-# /* -------------------------------------------------------------------------- */
+variable "security_groups" {
+  description = "Security groups to apply to service"
+  type        = list(string)
+}
 
-# variable "service_image" {
-#   description = "Image name for the container"
-#   type        = string
-# }
-
-# variable "enable_execute_command" {
-#   description = "Specifies whether to enable Amazon ECS Exec for the tasks within the service."
-#   type        = bool
-#   default     = false
-# }
-
-# variable "service_count" {
-#   description = "Number of containers to deploy"
-#   type        = number
-#   default     = 1
-# }
-
-# variable "cpu" {
-#   description = "CPU (MHz) to dedicate to each deployed container. See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html for valid value for Fargate tasks. For Eg: 512 "
-#   type        = string
-# }
-
-# variable "memory" {
-#   description = "Memory to dedicate to each deployed container. See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html for valid value for Fargate tasks. For Eg: 512"
-#   type        = string
-# }
-
-# variable "ecs_cluster_name" {
-#   description = "ECS Cluster name to deploy in"
-#   type        = string
-# }
-
-# variable "service_discovery_namespace" {
-#   description = "DNS Namespace to deploy to"
-#   type        = string
-# }
-
-# variable "security_groups" {
-#   description = "Security groups to apply to service"
-#   type        = list(string)
-# }
-
-# variable "subnets" {
-#   description = "Subnet IDs to deploy into"
-#   type        = list(string)
-# }
-
-# variable "envvars" {
-#   description = "List of [{name = \"\", value = \"\"}] pairs of environment variables"
-#   type = set(object({
-#     name  = string
-#     value = string
-#   }))
-#   default = [{
-#     name  = "EXAMPLE_ENV"
-#     value = "example"
-#   }]
-# }
-
-# variable "email_ids" {
-#   description = "List of email ids where alerts are to be published"
-#   type        = list(string)
-#   default     = []
-# }
-
-# variable "secrets" {
-#   description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
-#   type        = map(any)
-#   default     = {}
-# }
-
-# variable "json_secrets" {
-#   description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
-#   type        = map(string)
-#   default     = {}
-# }
-
-# variable "account_alias" {
-#   description = "Alias of the AWS account where this service is created. Eg. alpha/beta/prod. This would be used create s3 bucket path in the logging account"
-#   type        = string
-# }
-
-# variable "apm_sidecar_ecr_url" {
-#   description = "[Optional] To enable APM, set Sidecar ECR URL"
-#   type        = string
-#   default     = ""
-# }
-
-# variable "apm_config" {
-#   description = "Config for X-Ray sidecar container for APM and traceability"
-#   type = object({
-#     service_port = number
-#     cpu          = number
-#     memory       = number
-#   })
-#   default = {
-#     service_port = 9000
-#     cpu          = 256
-#     memory       = 512
-#   }
-# }
-
-# # variable "log_aggregation_s3" {
-# #   description = "[Required] S3 details where logs are stored"
-# #   type = object({
-# #     bucket_name = string
-# #     kms_key_arn = string
-# #   })
-# # }
+variable "application_subnet_ids" {
+  description = "Subnet IDs to deploy into"
+  type        = list(string)
+}
