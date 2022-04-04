@@ -208,12 +208,12 @@ variable "is_enable_execute_command" {
   default     = false
 }
 
-variable "security_groups" {
-  description = "Security groups to apply to service"
+variable "application_subnet_ids" {
+  description = "Subnet IDs to deploy into"
   type        = list(string)
 }
 
-variable "application_subnet_ids" {
-  description = "Subnet IDs to deploy into"
+variable "security_groups" {
+  description = "Security groups to apply to service"
   type        = list(string)
 }
