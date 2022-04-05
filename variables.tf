@@ -79,7 +79,7 @@ variable "is_attach_service_with_lb" {
   type        = bool
 }
 
-variable "vpc_id" { #########
+variable "vpc_id" {
   description = "VPC id where security group is created"
   type        = string
   default     = ""

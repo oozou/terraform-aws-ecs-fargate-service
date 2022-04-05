@@ -1,60 +1,4 @@
 /* -------------------------------------------------------------------------- */
-/*                                  Generics                                  */
-/* -------------------------------------------------------------------------- */
-/* ---------------------------------- Data ---------------------------------- */
-data "aws_caller_identity" "current" {
-}
-
-data "aws_region" "current" {
-}
-/* --------------------------------- Locals --------------------------------- */
-locals {
-  service_name = format("%s-%s-%s", var.prefix, var.environment, var.name)
-
-  # Task Role
-  task_role_arn                     = var.is_create_iam_role ? aws_iam_role.task_role[0].arn : var.exists_task_role_arn
-  task_role_name                    = try(split("/", local.task_role_arn)[1], "")
-  task_role_id                      = local.task_role_name
-  ecs_default_task_role_policy_arns = ["arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"]
-  ecs_task_role_policy_arns         = toset(concat(var.additional_ecs_task_role_policy_arns, local.ecs_default_task_role_policy_arns))
-
-  # Task Exec Role
-  task_execution_role_arn                     = var.is_create_iam_role ? aws_iam_role.task_execution_role[0].arn : var.exists_task_execution_role_arn
-  task_execution_role_name                    = try(split("/", local.task_execution_role_arn)[1], "")
-  task_execution_role_id                      = local.task_execution_role_name
-  ecs_default_task_execution_role_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
-  ecs_task_execution_role_policy_arns         = toset(concat(var.additional_ecs_task_execution_role_policy_arns, local.ecs_default_task_execution_role_policy_arns))
-
-  # Logging
-  log_group_name = format("%s-service-log-group", local.service_name)
-
-  # APM
-  is_apm_enabled = signum(length(trimspace(var.apm_sidecar_ecr_url))) == 1
-  apm_name       = "xray-apm-sidecar"
-
-  # ECS Service
-  ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:cluster/${var.ecs_cluster_name}"
-
-  tags = merge(
-    {
-      "Environment" = var.environment,
-      "Terraform"   = "true"
-    },
-    var.tags
-  )
-}
-/* ----------------------------- Raise Xondition ---------------------------- */
-locals {
-  raise_task_role_arn_required           = !var.is_create_iam_role && length(var.exists_task_role_arn) == 0 ? file("Variable `exists_task_role_arn` is required when `is_create_iam_role` is false") : "pass"
-  raise_task_execution_role_arn_required = !var.is_create_iam_role && length(var.exists_task_execution_role_arn) == 0 ? file("Variable `exists_task_execution_role_arn` is required when `is_create_iam_role` is false") : "pass"
-
-  raise_vpc_id_empty           = var.is_attach_service_with_lb && length(var.vpc_id) == 0 ? file("Variable `vpc_id` is required when `is_attach_service_with_lb` is true") : "pass"
-  raise_service_port_empty     = var.is_attach_service_with_lb && var.service_info.port == null ? file("Variable `service_info.port` is required when `is_attach_service_with_lb` is true") : "pass"
-  raise_health_check_empty     = var.is_attach_service_with_lb && var.health_check == {} ? file("Variable `health_check` is required when `is_attach_service_with_lb` is true") : "pass"
-  raise_alb_listener_arn_empty = var.is_attach_service_with_lb && length(var.alb_listener_arn) == 0 ? file("Variable `alb_listener_arn` is required when `is_attach_service_with_lb` is true") : "pass"
-  raise_alb_host_header_empty  = var.is_attach_service_with_lb && var.alb_host_header == null ? file("Variable `alb_host_header` is required when `is_attach_service_with_lb` is true") : "pass"
-}
-/* -------------------------------------------------------------------------- */
 /*                                  Task Role                                 */
 /* -------------------------------------------------------------------------- */
 data "aws_iam_policy_document" "task_assume_role_policy" {
@@ -280,7 +224,7 @@ resource "aws_iam_role_policy" "task_execution_secrets" {
       {
         "Effect": "Allow",
         "Action": ["secretsmanager:GetSecretValue"],
-        "Resource": ${jsonencode(format("%s/*", split("/", local.secret_manager_json_arns)[0]))}
+        "Resource": ${jsonencode(format("%s/*", split("/", local.secret_manager_json_arn)[0]))}
       }
     ]
 }
