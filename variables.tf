@@ -52,7 +52,7 @@ variable "additional_ecs_task_role_policy_arns" {
 variable "exists_task_execution_role_arn" {
   description = "The existing arn of task exec role"
   type        = string
-  default     = null
+  default     = ""
 }
 
 variable "additional_ecs_task_execution_role_policy_arns" {
