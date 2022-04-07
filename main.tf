@@ -281,7 +281,7 @@ resource "aws_service_discovery_service" "service" {
 }
 
 resource "aws_ecs_service" "this" {
-  name                   = format("%s-service", local.service_name)
+  name                   = format("%s", local.service_name)
   cluster                = local.ecs_cluster_arn
   task_definition        = aws_ecs_task_definition.this.arn
   desired_count          = var.service_count
@@ -311,5 +311,5 @@ resource "aws_ecs_service" "this" {
     ignore_changes = [task_definition]
   }
 
-  tags = merge(local.tags, { Name = format("%s-service", local.service_name) })
+  tags = merge(local.tags, { Name = format("%s", local.service_name) })
 }
