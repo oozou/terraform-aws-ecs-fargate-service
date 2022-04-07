@@ -142,11 +142,11 @@ resource "aws_lb_listener_rule" "this" {
   }
 
   dynamic "condition" {
-    for_each = var.custom_header_token == "" ? [] : [var.custom_header_token]
+    for_each = var.custom_header_token == "" ? [] : [true]
     content {
       http_header {
         http_header_name = "custom-header-token" # Match value within cloudfront module
-        values           = [each.value]
+        values           = [var.custom_header_token]
       }
     }
   }
