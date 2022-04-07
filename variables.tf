@@ -137,6 +137,12 @@ variable "email_ids" {
   default     = []
 }
 
+variable "custom_header_token" {
+  description = "[Required] Specify secret value for custom header"
+  type        = string
+  default     = ""
+}
+
 variable "health_check" {
   description = "Health Check Config for the service"
   type        = map(string)
