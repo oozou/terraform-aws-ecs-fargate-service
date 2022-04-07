@@ -123,6 +123,12 @@ variable "alb_priority" {
   default     = "100"
 }
 
+variable "custom_header_token" {
+  description = "[Required] Specify secret value for custom header"
+  type        = string
+  default     = ""
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                   Secret                                   */
 /* -------------------------------------------------------------------------- */
