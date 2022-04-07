@@ -177,88 +177,6 @@ module "service" {
 ```
 
 <!-- BEGIN_TF_DOCS -->
-## Usage
-
-```terraform
-module "fargate_service" {
-  source = "git::ssh://git@github.com/oozou/terraform-aws-ecs-fargate-service.git?ref=<version_or_branch>"
-
-  # Generics
-  prefix      = "sbth"
-  environment = "test"
-  name        = "demo"
-
-  # IAM Role
-  is_create_iam_role                             = true # Default is `true`
-  exists_task_role_arn                           = ""   # Required when is_create_iam_role is `false`
-  additional_ecs_task_role_policy_arns           = []   # Default is `[]`, already attaced ["arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"]
-  exists_task_execution_role_arn                 = ""   # Required when is_create_iam_role is `false`
-  additional_ecs_task_execution_role_policy_arns = []   # Default is `[]`, already attaced ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
-
-  # ALB
-  is_attach_service_with_lb = true # Default is `true`
-  ## If is_attach_service_with_lb is set to 'false,' the subsequent parameters are ignored.
-  alb_listener_arn = module.ecs_cluster.alb_listener_http_arn
-  alb_path         = "/*"
-  alb_priority     = "100"
-  alb_host_header  = "demo-big.sbth-develop.millenium-m.me"
-  ## Target group that listener will take action
-  vpc_id = module.vpc.vpc_id
-  health_check = {
-    interval            = 30
-    path                = "/health"
-    timeout             = 10
-    healthy_threshold   = 3
-    unhealthy_threshold = 3
-    matcher             = "200,201,204"
-  }
-
-  # Logging
-  is_create_cloudwatch_log_group = true # Default is `true`
-
-  # Task definition
-  service_info = {
-    containers_num = 2
-    cpu_allocation = 256
-    mem_allocation = 512
-    port           = 8080
-    image          = "nginx"
-  }
-  apm_sidecar_ecr_url = "" # Default is `""`. If specific, the APM is auto enable
-  apm_config          = {} # There's default value, ignore if apm_sidecar_ecr_url is `""`
-
-  # Secret
-  secrets = {
-    "DB_PASSWORD"         = "aa"
-    "REDIS_PASSWORD"      = "vv"
-    "API_SB_CRM_PASSWORD" = "cc"
-    "S3_KMS_KEY_ID"       = "dd"
-  }
-  json_secrets = {
-    "DB_PASSWORD"         = "aa"
-    "REDIS_PASSWORD"      = "vv"
-    "API_SB_CRM_PASSWORD" = "cc"
-    "S3_KMS_KEY_ID"       = "dd"
-  }
-
-  # ECS service
-  ecs_cluster_name            = module.ecs_cluster.ecs_cluster_name
-  service_discovery_namespace = module.ecs_cluster.service_discovery_namespace
-  service_count               = 1     # Default is `1`
-  is_enable_execute_command   = false # Default is `false`
-  application_subnet_ids      = module.vpc.private_subnet_ids
-  security_groups = [
-    module.ecs_fargate_cluster.ecs_task_security_group_id,
-    module.rds_mssql.db_client_security_group_id,
-    module.redis.db_client_security_group_id
-  ]
-
-  tags = {
-    "Workspace" = "custom-workspace"
-  }
-}
-```
-
 ## Requirements
 
 | Name                                                                      | Version  |
@@ -320,6 +238,7 @@ module "fargate_service" {
 | <a name="input_apm_config"></a> [apm\_config](#input\_apm\_config)                                                                                                                       | Config for X-Ray sidecar container for APM and traceability                                                                          | <pre>object({<br>    service_port = number<br>    cpu          = number<br>    memory       = number<br>  })</pre>                                                                     | <pre>{<br>  "cpu": 256,<br>  "memory": 512,<br>  "service_port": 9000<br>}</pre>        |    no    |
 | <a name="input_apm_sidecar_ecr_url"></a> [apm\_sidecar\_ecr\_url](#input\_apm\_sidecar\_ecr\_url)                                                                                        | [Optional] To enable APM, set Sidecar ECR URL                                                                                        | `string`                                                                                                                                                                               | `""`                                                                                    |    no    |
 | <a name="input_application_subnet_ids"></a> [application\_subnet\_ids](#input\_application\_subnet\_ids)                                                                                 | Subnet IDs to deploy into                                                                                                            | `list(string)`                                                                                                                                                                         | n/a                                                                                     |   yes    |
+| <a name="input_custom_header_token"></a> [custom\_header\_token](#input\_custom\_header\_token)                                                                                          | [Required] Specify secret value for custom header                                                                                    | `string`                                                                                                                                                                               | `""`                                                                                    |    no    |
 | <a name="input_ecs_cluster_name"></a> [ecs\_cluster\_name](#input\_ecs\_cluster\_name)                                                                                                   | ECS Cluster name to deploy in                                                                                                        | `string`                                                                                                                                                                               | n/a                                                                                     |   yes    |
 | <a name="input_environment"></a> [environment](#input\_environment)                                                                                                                      | Environment Variable used as a prefix                                                                                                | `string`                                                                                                                                                                               | n/a                                                                                     |   yes    |
 | <a name="input_envvars"></a> [envvars](#input\_envvars)                                                                                                                                  | List of [{name = "", value = ""}] pairs of environment variables                                                                     | <pre>set(object({<br>    name  = string<br>    value = string<br>  }))</pre>                                                                                                           | <pre>[<br>  {<br>    "name": "EXAMPLE_ENV",<br>    "value": "example"<br>  }<br>]</pre> |    no    |
@@ -343,5 +262,12 @@ module "fargate_service" {
 
 ## Outputs
 
-No outputs.
+| Name                                                                                                            | Description                                     |
+|-----------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
+| <a name="output_secret_arns"></a> [secret\_arns](#output\_secret\_arns)                                         | List of ARNs of the SecretsManager secrets      |
+| <a name="output_secret_json_arn"></a> [secret\_json\_arn](#output\_secret\_json\_arn)                           | List of ARNs of the SecretsManager json secrets |
+| <a name="output_task_execution_role_arn"></a> [task\_execution\_role\_arn](#output\_task\_execution\_role\_arn) | ECS Task execution role ARN                     |
+| <a name="output_task_execution_role_id"></a> [task\_execution\_role\_id](#output\_task\_execution\_role\_id)    | ECS Task execution role ID                      |
+| <a name="output_task_role_arn"></a> [task\_role\_arn](#output\_task\_role\_arn)                                 | ECS Task role ARN                               |
+| <a name="output_task_role_id"></a> [task\_role\_id](#output\_task\_role\_id)                                    | ECS Task role ID                                |
 <!-- END_TF_DOCS -->
