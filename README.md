@@ -176,6 +176,90 @@ module "service" {
 }
 ```
 
+## Usage
+
+```terraform
+module "fargate_service" {
+  source = "git::ssh://git@github.com/oozou/terraform-aws-ecs-fargate-service.git?ref=<version_or_branch>"
+
+  # Generics
+  prefix      = "sbth"
+  environment = "test"
+  name        = "demo"
+
+  # IAM Role
+  is_create_iam_role                             = true # Default is `true`
+  exists_task_role_arn                           = ""   # Required when is_create_iam_role is `false`
+  additional_ecs_task_role_policy_arns           = []   # Default is `[]`, already attaced ["arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"]
+  exists_task_execution_role_arn                 = ""   # Required when is_create_iam_role is `false`
+  additional_ecs_task_execution_role_policy_arns = []   # Default is `[]`, already attaced ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
+
+  # ALB
+  is_attach_service_with_lb = true # Default is `true`
+  ## If is_attach_service_with_lb is set to 'false,' the subsequent parameters are ignored.
+  alb_listener_arn = module.ecs_cluster.alb_listener_http_arn
+  alb_path         = "/*"
+  alb_priority     = "100"
+  alb_host_header  = "demo-big.sbth-develop.millenium-m.me"
+  custom_header_token = "" # Default is `""`, specific for only allow header with given token ex. "asdskjhekewhdk"
+  ## Target group that listener will take action
+  vpc_id = module.vpc.vpc_id
+  health_check = {
+    interval            = 30
+    path                = "/health"
+    timeout             = 10
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    matcher             = "200,201,204"
+  }
+
+  # Logging
+  is_create_cloudwatch_log_group = true # Default is `true`
+
+  # Task definition
+  service_info = {
+    containers_num = 2
+    cpu_allocation = 256
+    mem_allocation = 512
+    port           = 8080
+    image          = "nginx"
+  }
+  apm_sidecar_ecr_url = "" # Default is `""`. If specific, the APM is auto enable
+  apm_config          = {} # There's default value, ignore if apm_sidecar_ecr_url is `""`
+
+  # Secret
+  secrets = {
+    "DB_PASSWORD"         = "aa"
+    "REDIS_PASSWORD"      = "vv"
+    "API_SB_CRM_PASSWORD" = "cc"
+    "S3_KMS_KEY_ID"       = "dd"
+  }
+  json_secrets = {
+    "DB_PASSWORD"         = "aa"
+    "REDIS_PASSWORD"      = "vv"
+    "API_SB_CRM_PASSWORD" = "cc"
+    "S3_KMS_KEY_ID"       = "dd"
+  }
+
+  # ECS service
+  ecs_cluster_name            = module.ecs_cluster.ecs_cluster_name
+  service_discovery_namespace = module.ecs_cluster.service_discovery_namespace
+  service_count               = 1     # Default is `1`
+  is_enable_execute_command   = false # Default is `false`
+  application_subnet_ids      = module.vpc.private_subnet_ids
+  security_groups = [
+    module.ecs_fargate_cluster.ecs_task_security_group_id,
+    module.rds_mssql.db_client_security_group_id,
+    module.redis.db_client_security_group_id
+  ]
+
+  tags = {
+    "Workspace" = "custom-workspace"
+  }
+}
+```
+
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
