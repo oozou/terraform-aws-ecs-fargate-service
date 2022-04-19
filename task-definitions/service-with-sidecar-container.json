@@ -1,50 +1,50 @@
 [
-    {
-        "cpu":${cpu},
-        "image":"${service_image}",
-        "memory":${memory},
-        "name":"${service_name}",
-        "networkMode":"awsvpc",
-        "essential":true,
-        "logConfiguration":{
-           "logDriver":"awslogs",
+  {
+      "cpu":${cpu},
+      "image":"${service_image}",
+      "memory":${memory},
+      "name":"${service_name}",
+      "networkMode":"awsvpc",
+      "essential":true,
+      "logConfiguration":{
+         "logDriver":"awslogs",
+         "options":{
+            "awslogs-group":"${log_group_name}",
+            "awslogs-region":"${region}",
+            "awslogs-stream-prefix":"${service_name}"
+         }
+      },
+      "portMappings":[
+         {
+            "containerPort":${service_port},
+            "hostPort":${service_port}
+         }
+      ],
+      "environment" : ${envvars},
+      "secrets" : ${secrets_task_definition}
+  },
+  {
+       "cpu":${apm_cpu},
+       "image":"${apm_sidecar_ecr_url}",
+       "memory":${apm_memory},
+       "name":"${apm_name}",
+       "networkMode":"awsvpc",
+       "essential":true,
+       "logConfiguration": {
+           "logDriver": "awslogs",
            "options":{
-              "awslogs-group":"${log_group_name}",
-              "awslogs-region":"${region}",
-              "awslogs-stream-prefix":"${service_name}"
+               "awslogs-group":"${log_group_name}",
+               "awslogs-region":"${region}",
+               "awslogs-stream-prefix":"${apm_name}"
            }
-        },
-        "portMappings":[
+       },
+       "portMappings": [
            {
-              "containerPort":${service_port},
-              "hostPort":${service_port}
+               "protocol": "udp",
+               "containerPort":${apm_service_port},
+               "hostPort":${apm_service_port}
            }
-        ],
-        "environment" : ${envvars},
-        "secrets" : ${secrets_task_definition}
-    },
-    {
-         "cpu":${apm_cpu},
-         "image":"${apm_sidecar_ecr_url}",
-         "memory":${apm_memory},
-         "name":"${apm_name}",
-         "networkMode":"awsvpc",
-         "essential":true,
-         "logConfiguration": {
-             "logDriver": "awslogs",
-             "options":{
-                 "awslogs-group":"${log_group_name}",
-                 "awslogs-region":"${region}",
-                 "awslogs-stream-prefix":"${apm_name}"
-             }
-         },
-         "portMappings": [
-             {
-                 "protocol": "udp",
-                 "containerPort":${apm_service_port},
-                 "hostPort":${apm_service_port}
-             }
-         ],
-         "volumesFrom": []
-     }
- ]
+       ],
+       "volumesFrom": []
+   }
+]

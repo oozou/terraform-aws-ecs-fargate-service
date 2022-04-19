@@ -1,149 +1,266 @@
-locals {
-  environment  = var.environment
-  service_name = "${var.prefix}-${var.environment}-${var.name}"
+/* -------------------------------------------------------------------------- */
+/*                                  Task Role                                 */
+/* -------------------------------------------------------------------------- */
+data "aws_iam_policy_document" "task_assume_role_policy" {
+  count = var.is_create_iam_role ? 1 : 0
 
-  tags = merge(
-    {
-      "Environment" = local.environment,
-      "Terraform"   = "true"
-    },
-    var.tags
-  )
+  statement {
+    sid     = ""
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
 }
 
-resource "aws_ecs_service" "public_service" {
-  name                   = "${local.service_name}-service"
-  cluster                = local.ecs_cluster_arn
-  task_definition        = (local.is_apm_enabled ? aws_ecs_task_definition.service_with_apm[0].arn : aws_ecs_task_definition.service[0].arn)
-  desired_count          = var.service_count
-  enable_execute_command = var.enable_execute_command
-  launch_type            = "FARGATE"
-  count                  = var.attach_lb ? 1 : 0
+resource "aws_iam_role" "task_role" {
+  count = var.is_create_iam_role ? 1 : 0
 
-  network_configuration {
-    security_groups = var.security_groups
-    subnets         = var.subnets
+  name               = format("%s-ecs-task-role", local.service_name)
+  assume_role_policy = data.aws_iam_policy_document.task_assume_role_policy[0].json
+
+  tags = merge(local.tags, { "Name" = format("%s-ecs-task-role", local.service_name) })
+}
+
+resource "aws_iam_role_policy_attachment" "task_role" {
+  for_each = var.is_create_iam_role ? local.ecs_task_role_policy_arns : []
+
+  role       = local.task_role_name
+  policy_arn = each.value
+}
+/* -------------------------------- Validator ------------------------------- */
+data "aws_iam_role" "get_ecs_task_role" {
+  count = !var.is_create_iam_role ? 1 : 0
+
+  name = local.task_role_name
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               Task Exec Role                               */
+/* -------------------------------------------------------------------------- */
+data "aws_iam_policy_document" "task_execution_assume_role_policy" {
+  count = var.is_create_iam_role ? 1 : 0
+
+  statement {
+    sid     = ""
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "task_execution_role" {
+  count = var.is_create_iam_role ? 1 : 0
+
+  name               = format("%s-ecs-task-execution-role", local.service_name)
+  assume_role_policy = data.aws_iam_policy_document.task_execution_assume_role_policy[0].json
+
+  tags = merge(local.tags, { "Name" = format("%s-ecs-task-execution-role", local.service_name) })
+}
+
+resource "aws_iam_role_policy_attachment" "task_execution_role" {
+  for_each = var.is_create_iam_role ? local.ecs_task_execution_role_policy_arns : []
+
+  role       = local.task_execution_role_name
+  policy_arn = each.value
+}
+/* -------------------------------- Validator ------------------------------- */
+data "aws_iam_role" "get_ecs_task_execution_role" {
+  count = !var.is_create_iam_role ? 1 : 0
+
+  name = local.task_execution_role_name
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                 CloudWatch                                 */
+/* -------------------------------------------------------------------------- */
+resource "aws_cloudwatch_log_group" "this" {
+  count = var.is_create_cloudwatch_log_group ? 1 : 0
+
+  name              = local.log_group_name
+  retention_in_days = 30
+
+  tags = merge(local.tags, { "Name" = local.log_group_name })
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                Load Balancer                               */
+/* -------------------------------------------------------------------------- */
+/* ----------------------------- LB Target Group ---------------------------- */
+resource "aws_lb_target_group" "this" {
+  count = var.is_attach_service_with_lb ? 1 : 0
+
+  name        = format("%s-tg", local.service_name)
+  port        = var.service_info.port
+  protocol    = var.service_info.port == 443 ? "HTTPS" : "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    interval            = lookup(var.health_check, "interval", null)
+    path                = lookup(var.health_check, "path", null)
+    timeout             = lookup(var.health_check, "timeout", null)
+    healthy_threshold   = lookup(var.health_check, "healthy_threshold", null)
+    unhealthy_threshold = lookup(var.health_check, "unhealthy_threshold", null)
+    matcher             = lookup(var.health_check, "matcher", null)
   }
 
-  service_registries {
-    registry_arn   = aws_service_discovery_service.service.arn
-    container_name = local.service_name
+  tags = merge(local.tags, { "Name" = format("%s-tg", local.service_name) })
+}
+/* ------------------------------ Listener Rule ----------------------------- */
+resource "aws_lb_listener_rule" "this" {
+  count = var.is_attach_service_with_lb ? 1 : 0
+
+  listener_arn = var.alb_listener_arn
+  priority     = var.alb_priority
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.this[0].arn
   }
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.main[0].arn
-    container_name   = local.service_name
-    container_port   = var.service_port
+  condition {
+    path_pattern {
+      values = [var.alb_path == "" ? "*" : var.alb_path]
+    }
   }
 
-  # If CodePipeline deploys, don't upset TF
-  lifecycle {
-    ignore_changes = [task_definition]
+  dynamic "condition" {
+    for_each = var.alb_host_header == null ? [] : [true]
+    content {
+      host_header {
+        values = [var.alb_host_header]
+      }
+    }
   }
+
+  dynamic "condition" {
+    for_each = var.custom_header_token == "" ? [] : [true]
+    content {
+      http_header {
+        http_header_name = "custom-header-token" # Match value within cloudfront module
+        values           = [var.custom_header_token]
+      }
+    }
+  }
+
+  tags = local.tags
+}
+/* -------------------------------------------------------------------------- */
+/*                                   Secret                                   */
+/* -------------------------------------------------------------------------- */
+module "secret_kms_key" {
+  source = "git@github.com:oozou/terraform-aws-kms-key.git?ref=v0.0.1"
+
+  alias_name           = format("%s-service-secrets", local.service_name)
+  append_random_suffix = true
+  key_type             = "service"
+  description          = format("Secure Secrets Manager's service secrets for service %s", local.service_name)
+
+  service_key_info = {
+    aws_service_names  = tolist([format("secretsmanager.%s.amazonaws.com", data.aws_region.current.name)])
+    caller_account_ids = tolist([data.aws_caller_identity.current.account_id])
+  }
+
+  custom_tags = merge(local.tags, { "Name" : format("%s-service-secrets", local.service_name) })
+}
+
+# Append random string to SM Secret names because once we tear down the infra, the secret does not actually
+# get deleted right away, which means that if we then try to recreate the infra, it'll fail as the
+# secret name already exists.
+resource "random_string" "service_secret_random_suffix" {
+  length  = 6
+  special = false
+}
+
+resource "aws_secretsmanager_secret" "service_secrets" {
+  for_each = var.secrets
+
+  name        = "${local.service_name}/${lower(each.key)}-${random_string.service_secret_random_suffix.result}"
+  description = "Secret 'secret_${lower(each.key)}' for service ${local.service_name}"
+  kms_key_id  = module.secret_kms_key.key_arn
+
+  tags = merge(local.tags, { Name = "${local.service_name}/${each.key}" })
+}
+
+resource "aws_secretsmanager_secret_version" "service_secrets" {
+  for_each = var.secrets
+
+  secret_id     = aws_secretsmanager_secret.service_secrets[each.key].id
+  secret_string = each.value
+}
+
+
+# /* -------------------------------------------------------------------------- */
+# /*                                 JSON SECRET                                */
+# /* -------------------------------------------------------------------------- */
+resource "aws_secretsmanager_secret" "service_json_secrets" {
+  name        = "${local.service_name}/${random_string.service_secret_random_suffix.result}"
+  description = "Secret for service ${local.service_name}"
+  kms_key_id  = module.secret_kms_key.key_arn
 
   tags = merge({
-    Name = local.service_name
+    Name = "${local.service_name}"
   }, local.tags)
 
-  provider = aws.service
+  provider = aws
 }
 
-resource "aws_ecs_service" "private_service" {
-  name                   = "${local.service_name}-service"
-  cluster                = local.ecs_cluster_arn
-  task_definition        = (local.is_apm_enabled ? aws_ecs_task_definition.service_with_apm[0].arn : aws_ecs_task_definition.service[0].arn)
-  desired_count          = var.service_count
-  enable_execute_command = var.enable_execute_command
-  launch_type            = "FARGATE"
-  count                  = var.attach_lb ? 0 : 1
+resource "aws_secretsmanager_secret_version" "service_json_secrets" {
+  secret_id     = aws_secretsmanager_secret.service_json_secrets.id
+  secret_string = jsonencode(var.json_secrets)
 
-
-  network_configuration {
-    security_groups = var.security_groups
-    subnets         = var.subnets
-  }
-
-  service_registries {
-    registry_arn   = aws_service_discovery_service.service.arn
-    container_name = local.service_name
-  }
-
-  lifecycle {
-    ignore_changes = [task_definition]
-  }
-
-  tags = merge({
-    Name = local.service_name
-  }, local.tags)
-
-  provider = aws.service
+  provider = aws
 }
 
-resource "aws_ecs_task_definition" "service" {
-  count                    = local.is_apm_enabled ? 0 : 1
+# We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
+# inject them as environment variables in the service
+resource "aws_iam_role_policy" "task_execution_secrets" {
+  count = var.is_create_iam_role ? 1 : 0
+
+  name = "${local.service_name}-ecs-task-execution-secrets"
+  role = local.task_execution_role_id
+
+  policy = <<EOF
+{
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": ["secretsmanager:GetSecretValue"],
+        "Resource": ${jsonencode(format("%s/*", split("/", local.secret_manager_json_arn)[0]))}
+      }
+    ]
+}
+EOF
+}
+
+/* -------------------------------------------------------------------------- */
+/*                             ECS Task Definition                            */
+/* -------------------------------------------------------------------------- */
+resource "aws_ecs_task_definition" "this" {
   family                   = local.service_name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = var.cpu
-  memory                   = var.memory
+  cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
+  memory                   = local.is_apm_enabled ? var.service_info.mem_allocation + var.apm_config.memory : var.service_info.mem_allocation
   execution_role_arn       = local.task_execution_role_arn
   task_role_arn            = local.task_role_arn
 
-  container_definitions = templatefile("${path.module}/task-definitions/service-main-container.json", {
-    cpu                     = var.cpu
-    service_image           = var.service_image
-    memory                  = var.memory
-    log_group_name          = local.log_group_name
-    region                  = data.aws_region.active.name
-    service_name            = local.service_name
-    service_port            = var.service_port
-    envvars                 = jsonencode(var.envvars)
-    secrets_task_definition = jsonencode(local.secrets_task_definition)
-  })
+  container_definitions = local.container_definitions
 
-
-  tags = merge({
-    Name = local.service_name
-  }, local.tags)
-
-  provider = aws.service
+  tags = merge(local.tags, { "Name" = local.service_name })
 }
 
-resource "aws_ecs_task_definition" "service_with_apm" {
-  count                    = local.is_apm_enabled ? 1 : 0
-  family                   = local.service_name
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = var.cpu + var.apm_config.cpu
-  memory                   = var.memory + var.apm_config.memory
-  execution_role_arn       = local.task_execution_role_arn
-  task_role_arn            = local.task_role_arn
-
-  container_definitions = templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", {
-    cpu                     = var.cpu
-    service_image           = var.service_image
-    memory                  = var.memory
-    log_group_name          = local.log_group_name
-    region                  = data.aws_region.active.name
-    service_name            = local.service_name
-    service_port            = var.service_port
-    envvars                 = jsonencode(var.envvars)
-    secrets_task_definition = jsonencode(local.secrets_task_definition)
-    apm_cpu                 = var.apm_config.cpu
-    apm_sidecar_ecr_url     = var.apm_sidecar_ecr_url
-    apm_memory              = var.apm_config.memory
-    apm_name                = local.apm_name
-    apm_service_port        = var.apm_config.service_port
-  })
-
-
-  tags = merge({
-    Name = local.service_name
-  }, local.tags)
-
-  provider = aws.service
-}
-
+/* -------------------------------------------------------------------------- */
+/*                                 ECS Service                                */
+/* -------------------------------------------------------------------------- */
 resource "aws_service_discovery_service" "service" {
   name = local.service_name
 
@@ -161,6 +278,38 @@ resource "aws_service_discovery_service" "service" {
   health_check_custom_config {
     failure_threshold = 1
   }
+}
 
-  provider = aws.service
+resource "aws_ecs_service" "this" {
+  name                   = format("%s", local.service_name)
+  cluster                = local.ecs_cluster_arn
+  task_definition        = aws_ecs_task_definition.this.arn
+  desired_count          = var.service_count
+  enable_execute_command = var.is_enable_execute_command
+  launch_type            = "FARGATE"
+
+  network_configuration {
+    security_groups = var.security_groups
+    subnets         = var.application_subnet_ids
+  }
+
+  service_registries {
+    registry_arn   = aws_service_discovery_service.service.arn
+    container_name = local.service_name
+  }
+
+  dynamic "load_balancer" {
+    for_each = var.is_attach_service_with_lb ? [true] : []
+    content {
+      target_group_arn = aws_lb_target_group.this[0].arn
+      container_name   = local.service_name
+      container_port   = var.service_info.port
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+
+  tags = merge(local.tags, { Name = format("%s", local.service_name) })
 }
