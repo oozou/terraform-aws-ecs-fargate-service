@@ -2,11 +2,11 @@
 
 ```terraform
 module "fargate_service" {
-  source = "git::ssh://git@github.com/oozou/terraform-aws-ecs-fargate-service.git?ref=<version_or_branch>"
+  source = "git::ssh://git@github.com/company/terraform-aws-ecs-fargate-service.git?ref=<version_or_branch>"
 
   # Generics
-  prefix      = "sbth"
-  environment = "test"
+  prefix      = "customer"
+  environment = "dev"
   name        = "demo"
 
   # IAM Role
@@ -22,7 +22,7 @@ module "fargate_service" {
   alb_listener_arn = module.ecs_cluster.alb_listener_http_arn
   alb_path         = "/*"
   alb_priority     = "100"
-  alb_host_header  = "demo-big.sbth-develop.millenium-m.me"
+  alb_host_header  = "demo-big.customer-develop.millenium-m.me"
   custom_header_token = "" # Default is `""`, specific for only allow header with given token ex. "asdskjhekewhdk"
   ## Target group that listener will take action
   vpc_id = module.vpc.vpc_id
@@ -102,7 +102,7 @@ module "fargate_service" {
 
 | Name                                                                               | Source                                         | Version |
 |------------------------------------------------------------------------------------|------------------------------------------------|---------|
-| <a name="module_secret_kms_key"></a> [secret\_kms\_key](#module\_secret\_kms\_key) | git@github.com:oozou/terraform-aws-kms-key.git | v0.0.1  |
+| <a name="module_secret_kms_key"></a> [secret\_kms\_key](#module\_secret\_kms\_key) | git@github.com:company/terraform-aws-kms-key.git | v0.0.1  |
 
 ## Resources
 
