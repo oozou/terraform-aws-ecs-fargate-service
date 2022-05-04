@@ -22,8 +22,8 @@ module "fargate_service" {
   alb_listener_arn    = module.ecs_cluster.alb_listener_http_arn
   alb_path            = "/*"
   alb_priority        = "100"
-  alb_host_header     = "demo-big.customer-develop.millenium-m.me"
-  custom_header_token = "" # Default is `""`, specific for only allow header with given token ex. "asdskjhekewhdk"
+  alb_host_header     = "demo-big.customer-develop.millenium-m.me" # Default is `null`
+  custom_header_token = ""                                         # Default is `""`, specific for only allow header with given token ex. "asdskjhekewhdk"
   ## Target group that listener will take action
   vpc_id = module.vpc.vpc_id
   health_check = {
