@@ -54,7 +54,6 @@ locals {
   raise_service_port_empty     = var.is_attach_service_with_lb && var.service_info.port == null ? file("Variable `service_info.port` is required when `is_attach_service_with_lb` is true") : "pass"
   raise_health_check_empty     = var.is_attach_service_with_lb && var.health_check == {} ? file("Variable `health_check` is required when `is_attach_service_with_lb` is true") : "pass"
   raise_alb_listener_arn_empty = var.is_attach_service_with_lb && length(var.alb_listener_arn) == 0 ? file("Variable `alb_listener_arn` is required when `is_attach_service_with_lb` is true") : "pass"
-  raise_alb_host_header_empty  = var.is_attach_service_with_lb && var.alb_host_header == null ? file("Variable `alb_host_header` is required when `is_attach_service_with_lb` is true") : "pass"
 }
 
 /* -------------------------------------------------------------------------- */
