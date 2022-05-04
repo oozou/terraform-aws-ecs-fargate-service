@@ -20,7 +20,7 @@ module "fargate_service" {
   is_attach_service_with_lb = true # Default is `true`
   ## If is_attach_service_with_lb is set to 'false,' the subsequent parameters are ignored.
   alb_listener_arn    = module.ecs_cluster.alb_listener_http_arn
-  alb_path            = "/*"
+  alb_paths           = ["/*"]                                     # List of alb path, default is [] will process as `["*"]` in module
   alb_priority        = "100"
   alb_host_header     = "demo-big.customer-develop.millenium-m.me" # Default is `null`
   custom_header_token = ""                                         # Default is `""`, specific for only allow header with given token ex. "asdskjhekewhdk"
