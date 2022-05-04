@@ -111,10 +111,10 @@ variable "alb_host_header" {
   default     = null
 }
 
-variable "alb_path" {
-  description = "Mention Path For ALB routing eg: / or /route1"
-  type        = string
-  default     = ""
+variable "alb_paths" {
+  description = "Mention list Path For ALB routing eg: [\"/\"] or [\"/route1\"]"
+  type        = list(string)
+  default     = []
 }
 
 variable "alb_priority" {

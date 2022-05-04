@@ -128,7 +128,7 @@ resource "aws_lb_listener_rule" "this" {
 
   condition {
     path_pattern {
-      values = [var.alb_path == "" ? "*" : var.alb_path]
+      values = var.alb_paths == [] ? ["*"] : var.alb_paths
     }
   }
 

@@ -19,11 +19,11 @@ module "fargate_service" {
   # ALB
   is_attach_service_with_lb = true # Default is `true`
   ## If is_attach_service_with_lb is set to 'false,' the subsequent parameters are ignored.
-  alb_listener_arn = module.ecs_cluster.alb_listener_http_arn
-  alb_path         = "/*"
-  alb_priority     = "100"
-  alb_host_header  = "demo-big.customer-develop.millenium-m.me"
-  custom_header_token = "" # Default is `""`, specific for only allow header with given token ex. "asdskjhekewhdk"
+  alb_listener_arn    = module.ecs_cluster.alb_listener_http_arn
+  alb_paths           = ["/*"]                                     # List of alb path, default is [] will process as `["*"]` in module
+  alb_priority        = "100"
+  alb_host_header     = "demo-big.customer-develop.millenium-m.me" # Default is `null`
+  custom_header_token = ""                                         # Default is `""`, specific for only allow header with given token ex. "asdskjhekewhdk"
   ## Target group that listener will take action
   vpc_id = module.vpc.vpc_id
   health_check = {
@@ -56,6 +56,7 @@ module "fargate_service" {
     "API_SB_CRM_PASSWORD" = "cc"
     "S3_KMS_KEY_ID"       = "dd"
   }
+  ## Optional json_secrets will create 1 asm in term of json; json_secrets -> {"name": "value", ...}
   json_secrets = {
     "DB_PASSWORD"         = "aa"
     "REDIS_PASSWORD"      = "vv"
@@ -100,8 +101,8 @@ module "fargate_service" {
 
 ## Modules
 
-| Name                                                                               | Source                                         | Version |
-|------------------------------------------------------------------------------------|------------------------------------------------|---------|
+| Name                                                                               | Source                                           | Version |
+|------------------------------------------------------------------------------------|--------------------------------------------------|---------|
 | <a name="module_secret_kms_key"></a> [secret\_kms\_key](#module\_secret\_kms\_key) | git@github.com:company/terraform-aws-kms-key.git | v0.0.1  |
 
 ## Resources
