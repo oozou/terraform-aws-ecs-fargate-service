@@ -223,3 +223,7 @@ variable "security_groups" {
   description = "Security groups to apply to service"
   type        = list(string)
 }
+
+/* -------------------------------------------------------------------------- */
+/*                             Auto Scaling Group                             */
+/* -------------------------------------------------------------------------- */
