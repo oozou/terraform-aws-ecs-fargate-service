@@ -362,7 +362,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
     ClusterName = var.ecs_cluster_name
     ServiceName = local.service_name
   }
-  alarm_actions = [aws_appautoscaling_policy.scale_up_policy.arn]
+  alarm_actions = [aws_appautoscaling_policy.scale_up.arn]
 
   tags = local.tags
 }
@@ -400,7 +400,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_low" {
     ClusterName = var.ecs_cluster_name
     ServiceName = local.service_name
   }
-  alarm_actions = [aws_appautoscaling_policy.scale_down_policy.arn]
+  alarm_actions = [aws_appautoscaling_policy.scale_down.arn]
 
   tags = local.tags
 }
