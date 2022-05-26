@@ -340,10 +340,13 @@ resource "aws_ecs_service" "this" {
 # }
 
 # Scalable dimension -> https://docs.aws.amazon.com/autoscaling/application/APIReference/API_RegisterScalableTarget.html#API_RegisterScalableTarget_RequestParameters
-resource "aws_appautoscaling_target" "this" {
-  max_capacity       = 4
-  min_capacity       = 1
-  resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.service_name)
-  scalable_dimension = "ecs:service:DesiredCount"
-  service_namespace  = "ecs"
-}
+# resource "aws_appautoscaling_target" "this" {
+#   max_capacity       = 4
+#   min_capacity       = 1
+#   resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.service_name)
+#   scalable_dimension = "ecs:service:DesiredCount"
+#   service_namespace  = "ecs"
+# }
+
+#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_target
+#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy
