@@ -348,5 +348,42 @@ resource "aws_appautoscaling_target" "this" {
   service_namespace  = "ecs"
 }
 
-#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_target
-#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy
+/* -------------------------------------------------------------------------- */
+/*                          Auto Scaling Policy (UP)                          */
+/* -------------------------------------------------------------------------- */
+resource "aws_appautoscaling_policy" "scale_up" {
+  name               = format("%s-scale-up-policy", local.service_name)
+  depends_on         = [aws_appautoscaling_target.this]
+  service_namespace  = "ecs"
+  resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.service_name)
+  scalable_dimension = "ecs:service:DesiredCount"
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Maximum"
+    step_adjustment {
+      metric_interval_lower_bound = 0
+      scaling_adjustment          = 1
+    }
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                         Auto Scaling Policy (DOWN)                         */
+/* -------------------------------------------------------------------------- */
+resource "aws_appautoscaling_policy" "scale_down" {
+  name               = format("%s-scale-down-policy", local.service_name)
+  depends_on         = [aws_appautoscaling_target.this]
+  service_namespace  = "ecs"
+  resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.service_name)
+  scalable_dimension = "ecs:service:DesiredCount"
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Maximum"
+    step_adjustment {
+      metric_interval_upper_bound = 0
+      scaling_adjustment          = -1
+    }
+  }
+}
