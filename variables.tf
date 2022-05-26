@@ -227,3 +227,21 @@ variable "security_groups" {
 /* -------------------------------------------------------------------------- */
 /*                             Auto Scaling Group                             */
 /* -------------------------------------------------------------------------- */
+# TODO remove default later
+variable "max_cpu_evaluation_period" {
+  description = "(Required) The number of periods over which data is compared to the specified threshold."
+  type        = string
+  default     = "1"
+}
+
+variable "max_cpu_period" {
+  description = "(Optional) The period in seconds over which the specified statistic is applied."
+  type        = string
+  default     = "60"
+}
+
+variable "max_cpu_threshold" {
+  description = "(Optional) The value against which the specified statistic is compared. This parameter is required for alarms based on static thresholds, but should not be used for alarms based on anomaly detection models."
+  type        = string
+  default     = "50"
+}
