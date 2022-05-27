@@ -354,7 +354,7 @@ resource "aws_appautoscaling_policy" "scale_up" {
   }
 
   dynamic "target_tracking_scaling_policy_configuration" {
-    for_each = var.scaling_configuration["policy_type"] == "TargetTrackingScaling" ? var.scaling_configuration : null
+    for_each = var.scaling_configuration["policy_type"] == "TargetTrackingScaling" ? var.scaling_configuration.scaling_behaviors : null
     iterator = config
 
     content {
