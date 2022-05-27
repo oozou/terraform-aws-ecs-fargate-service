@@ -320,7 +320,6 @@ resource "aws_ecs_service" "this" {
 /* -------------------------------------------------------------------------- */
 /*                             Auto Scaling Target                            */
 /* -------------------------------------------------------------------------- */
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_target
 resource "aws_appautoscaling_target" "this" {
   max_capacity       = var.scaling_configuration.capacity.max_capacity
   min_capacity       = var.scaling_configuration.capacity.min_capacity
@@ -332,104 +331,30 @@ resource "aws_appautoscaling_target" "this" {
 /* -------------------------------------------------------------------------- */
 /*                          Auto Scaling Policy (UP)                          */
 /* -------------------------------------------------------------------------- */
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy
-resource "aws_appautoscaling_policy" "scale_up" {
-  depends_on = [aws_appautoscaling_target.this]
+# resource "aws_appautoscaling_policy" "scale_up" {
+#   depends_on = [aws_appautoscaling_target.this]
 
-  name               = format("%s-scale-up-policy", local.service_name)
-  resource_id        = aws_appautoscaling_target.this.resource_id
-  scalable_dimension = aws_appautoscaling_target.this.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.this.service_namespace
+#   for_each = var.scaling_configuration.scaling_behaviors
 
-  policy_type = lookup(var.scaling_configuration, "policy_type", null)
+#   name               = format("%s-%s-scale-policy", local.service_name, each.value)
+#   resource_id        = aws_appautoscaling_target.this.resource_id
+#   scalable_dimension = aws_appautoscaling_target.this.scalable_dimension
+#   service_namespace  = aws_appautoscaling_target.this.service_namespace
 
-  # dynamic "step_scaling_policy_configuration" {
-  #   adjustment_type         = "ChangeInCapacity"
-  #   cooldown                = var.scaling_cooldown
-  #   metric_aggregation_type = "Average"
-  #   step_adjustment {
-  #     metric_interval_lower_bound = 0
-  #     scaling_adjustment          = var.scaling_adjustment.scaling_out
-  #   }
-  # }
+#   policy_type = lookup(var.scaling_configuration, "policy_type", null)
 
-  dynamic "target_tracking_scaling_policy_configuration" {
-    for_each = var.scaling_configuration["policy_type"] == "TargetTrackingScaling" ? var.scaling_configuration.scaling_behaviors : null
-    iterator = config
+#   dynamic "target_tracking_scaling_policy_configuration" {
+#     for_each = var.scaling_configuration["policy_type"] == "TargetTrackingScaling" ? var.scaling_configuration.scaling_behaviors : null
+#     iterator = config
 
-    content {
-      predefined_metric_specification {
-        predefined_metric_type = lookup(var.config, "predefined_metric_type", null)
-      }
+#     content {
+#       predefined_metric_specification {
+#         predefined_metric_type = lookup(config, "predefined_metric_type", null)
+#       }
 
-      target_value       = lookup(var.config, "target_value", null)
-      scale_in_cooldown  = lookup(var.config, "scale_in_cooldown", 60)
-      scale_out_cooldown = lookup(var.config, "scale_out_cooldown", 60)
-    }
-  }
-}
-
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_alarm
-# resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-#   alarm_name          = format("%s-cpu-high-alarm", local.service_name)
-#   comparison_operator = "GreaterThanOrEqualToThreshold"
-#   evaluation_periods  = var.max_cpu_evaluation_period
-#   metric_name         = "CPUUtilization"
-#   namespace           = "AWS/ECS"
-#   period              = var.max_cpu_period
-#   statistic           = "Average"
-#   threshold           = var.max_cpu_threshold
-#   dimensions = {
-#     ClusterName = var.ecs_cluster_name
-#     ServiceName = local.service_name
-#   }
-#   alarm_actions = [aws_appautoscaling_policy.scale_up.arn]
-
-#   tags = local.tags
-# }
-
-/* -------------------------------------------------------------------------- */
-/*                         Auto Scaling Policy (DOWN)                         */
-/* -------------------------------------------------------------------------- */
-# resource "aws_appautoscaling_policy" "scale_down" {
-#   name               = format("%s-scale-down-policy", local.service_name)
-#   depends_on         = [aws_appautoscaling_target.this]
-#   service_namespace  = "ecs"
-#   resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.service_name)
-#   scalable_dimension = "ecs:service:DesiredCount"
-#   policy_type        = "TargetTrackingScaling"
-
-# step_scaling_policy_configuration {
-#   adjustment_type         = "ChangeInCapacity"
-#   cooldown                = var.scaling_cooldown
-#   metric_aggregation_type = "Average"
-#   step_adjustment {
-#     metric_interval_upper_bound = 0
-#     scaling_adjustment          = var.scaling_adjustment.scaling_in
+#       target_value       = lookup(config, "target_value", null)
+#       scale_in_cooldown  = lookup(config, "scale_in_cooldown", 60)
+#       scale_out_cooldown = lookup(config, "scale_out_cooldown", 60)
+#     }
 #   }
 # }
-# }
-
-# resource "aws_cloudwatch_metric_alarm" "cpu_low" {
-#   alarm_name          = format("%s-cpu-low-alarm", local.service_name)
-#   comparison_operator = "LessThanOrEqualToThreshold"
-#   evaluation_periods  = var.min_cpu_evaluation_period
-#   metric_name         = "CPUUtilization"
-#   namespace           = "AWS/ECS"
-#   period              = var.min_cpu_period
-#   statistic           = "Average"
-#   threshold           = var.min_cpu_threshold
-#   dimensions = {
-#     ClusterName = var.ecs_cluster_name
-#     ServiceName = local.service_name
-#   }
-#   alarm_actions = [aws_appautoscaling_policy.scale_down.arn]
-
-#   tags = local.tags
-# }
-
-# TODO; Feature
-# - Health Check in ecs task def
-# - Scaling TargetTrackingScaling
-# - Task def fron JSON to resource
-# - Notification from scaling
