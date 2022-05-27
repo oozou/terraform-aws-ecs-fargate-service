@@ -343,15 +343,15 @@ resource "aws_appautoscaling_policy" "scale_up" {
 
   policy_type = lookup(var.scaling_configuration, "policy_type", null)
 
-  dynamic "step_scaling_policy_configuration" {
-    adjustment_type         = "ChangeInCapacity"
-    cooldown                = var.scaling_cooldown
-    metric_aggregation_type = "Average"
-    step_adjustment {
-      metric_interval_lower_bound = 0
-      scaling_adjustment          = var.scaling_adjustment.scaling_out
-    }
-  }
+  # dynamic "step_scaling_policy_configuration" {
+  #   adjustment_type         = "ChangeInCapacity"
+  #   cooldown                = var.scaling_cooldown
+  #   metric_aggregation_type = "Average"
+  #   step_adjustment {
+  #     metric_interval_lower_bound = 0
+  #     scaling_adjustment          = var.scaling_adjustment.scaling_out
+  #   }
+  # }
 
   dynamic "target_tracking_scaling_policy_configuration" {
     for_each = var.scaling_configuration["policy_type"] == "TargetTrackingScaling" ? var.scaling_configuration.scaling_behaviors : null
