@@ -352,18 +352,18 @@ resource "aws_appautoscaling_policy" "scale_up" {
   #   }
   # }
 
-  dynamic "target_tracking_scaling_policy_configuration" {
-    for_each = var.scaling_configuration["policy_type"] == "TargetTrackingScaling" ? [true] : []
-    content {
-      predefined_metric_specification {
-        predefined_metric_type = lookup(var.scaling_configuration, "predefined_metric_type", null)
-      }
+  # dynamic "target_tracking_scaling_policy_configuration" {
+  #   for_each = var.scaling_configuration["policy_type"] == "TargetTrackingScaling" ? [true] : []
+  #   content {
+  #     predefined_metric_specification {
+  #       predefined_metric_type = lookup(var.scaling_configuration, "predefined_metric_type", null)
+  #     }
 
-      target_value       = lookup(var.scaling_configuration, "target_value", null)
-      scale_in_cooldown  = lookup(var.scaling_configuration, "scale_in_cooldown", 60)
-      scale_out_cooldown = lookup(var.scaling_configuration, "scale_out_cooldown", 60)
-    }
-  }
+  #     target_value       = lookup(var.scaling_configuration, "target_value", null)
+  #     scale_in_cooldown  = lookup(var.scaling_configuration, "scale_in_cooldown", 60)
+  #     scale_out_cooldown = lookup(var.scaling_configuration, "scale_out_cooldown", 60)
+  #   }
+  # }
 }
 
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
