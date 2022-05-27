@@ -366,23 +366,23 @@ resource "aws_appautoscaling_policy" "scale_up" {
   }
 }
 
-# resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-#   alarm_name          = format("%s-cpu-high-alarm", local.service_name)
-#   comparison_operator = "GreaterThanOrEqualToThreshold"
-#   evaluation_periods  = var.max_cpu_evaluation_period
-#   metric_name         = "CPUUtilization"
-#   namespace           = "AWS/ECS"
-#   period              = var.max_cpu_period
-#   statistic           = "Average"
-#   threshold           = var.max_cpu_threshold
-#   dimensions = {
-#     ClusterName = var.ecs_cluster_name
-#     ServiceName = local.service_name
-#   }
-#   alarm_actions = [aws_appautoscaling_policy.scale_up.arn]
+resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  alarm_name          = format("%s-cpu-high-alarm", local.service_name)
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = var.max_cpu_evaluation_period
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ECS"
+  period              = var.max_cpu_period
+  statistic           = "Average"
+  threshold           = var.max_cpu_threshold
+  dimensions = {
+    ClusterName = var.ecs_cluster_name
+    ServiceName = local.service_name
+  }
+  alarm_actions = [aws_appautoscaling_policy.scale_up.arn]
 
-#   tags = local.tags
-# }
+  tags = local.tags
+}
 
 /* -------------------------------------------------------------------------- */
 /*                         Auto Scaling Policy (DOWN)                         */
