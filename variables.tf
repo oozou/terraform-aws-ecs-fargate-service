@@ -231,16 +231,6 @@ variable "scaling_configuration" {
   description = <<EOF
   EOF
   type        = any
-  default = {
-    policy_type = "TargetTrackingScaling"
-    capacity = {
-      min_capacity = 1
-      max_capacity = 10
-    }
-    predefined_metric_type = "ECSServiceAverageCPUUtilization"
-    scale_in_cooldown      = 60
-    scale_out_cooldown     = 60
-  }
 }
 
 variable "scaling_capacity" {
