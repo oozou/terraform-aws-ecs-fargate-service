@@ -427,3 +427,4 @@ resource "aws_appautoscaling_policy" "scale_up" {
 # TODO; Feature
 # - Health Check in ecs task def
 # - Scaling TargetTrackingScaling
+# - Task def fron JSON to resource

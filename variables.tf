@@ -231,7 +231,7 @@ variable "scaling_configuration" {
   description = <<EOF
   EOF
   type        = any
-  defautl = {
+  default = {
     policy_type = "TargetTrackingScaling"
     capacity = {
       min_capacity = 1
