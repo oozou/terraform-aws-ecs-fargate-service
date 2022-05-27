@@ -322,8 +322,8 @@ resource "aws_ecs_service" "this" {
 /* -------------------------------------------------------------------------- */
 # Scalable dimension -> https://docs.aws.amazon.com/autoscaling/application/APIReference/API_RegisterScalableTarget.html#API_RegisterScalableTarget_RequestParameters
 resource "aws_appautoscaling_target" "this" {
-  max_capacity       = 4
-  min_capacity       = 1
+  max_capacity       = var.scaling_configuration.capacity.max_capacity
+  min_capacity       = var.scaling_configuration.capacity.min_capacity
   resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.service_name)
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -333,74 +333,97 @@ resource "aws_appautoscaling_target" "this" {
 /*                          Auto Scaling Policy (UP)                          */
 /* -------------------------------------------------------------------------- */
 resource "aws_appautoscaling_policy" "scale_up" {
+  depends_on = [aws_appautoscaling_target.this]
+
   name               = format("%s-scale-up-policy", local.service_name)
-  depends_on         = [aws_appautoscaling_target.this]
-  service_namespace  = "ecs"
-  resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.service_name)
-  scalable_dimension = "ecs:service:DesiredCount"
-  step_scaling_policy_configuration {
-    adjustment_type         = "ChangeInCapacity"
-    cooldown                = 60
-    metric_aggregation_type = "Maximum"
-    step_adjustment {
-      metric_interval_lower_bound = 0
-      scaling_adjustment          = 1
+  resource_id        = aws_appautoscaling_target.this.resource_id
+  scalable_dimension = aws_appautoscaling_target.this.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.this.service_namespace
+
+  policy_type = lookup(var.scaling_configuration, "policy_type", null)
+
+  # step_scaling_policy_configuration {
+  #   adjustment_type         = "ChangeInCapacity"
+  #   cooldown                = var.scaling_cooldown
+  #   metric_aggregation_type = "Average"
+  #   step_adjustment {
+  #     metric_interval_lower_bound = 0
+  #     scaling_adjustment          = var.scaling_adjustment.scaling_out
+  #   }
+  # }
+
+  dynamic "target_tracking_scaling_policy_configuration" {
+    for_each = var.scaling_configuration["policy_type"] == "TargetTrackingScaling" ? [true] : []
+    content {
+      predefined_metric_specification {
+        predefined_metric_type = lookup(var.scaling_configuration, "predefined_metric_type", null)
+      }
+
+      target_value       = lookup(var.scaling_configuration, "target_value", null)
+      scale_in_cooldown  = lookup(var.scaling_configuration, "scale_in_cooldown", 60)
+      scale_out_cooldown = lookup(var.scaling_configuration, "scale_out_cooldown", 60)
     }
   }
 }
 
-resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-  alarm_name          = format("%s-cpu-high-alarm", local.service_name)
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = var.max_cpu_evaluation_period
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/ECS"
-  period              = var.max_cpu_period
-  statistic           = "Maximum"
-  threshold           = var.max_cpu_threshold
-  dimensions = {
-    ClusterName = var.ecs_cluster_name
-    ServiceName = local.service_name
-  }
-  alarm_actions = [aws_appautoscaling_policy.scale_up.arn]
+# resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+#   alarm_name          = format("%s-cpu-high-alarm", local.service_name)
+#   comparison_operator = "GreaterThanOrEqualToThreshold"
+#   evaluation_periods  = var.max_cpu_evaluation_period
+#   metric_name         = "CPUUtilization"
+#   namespace           = "AWS/ECS"
+#   period              = var.max_cpu_period
+#   statistic           = "Average"
+#   threshold           = var.max_cpu_threshold
+#   dimensions = {
+#     ClusterName = var.ecs_cluster_name
+#     ServiceName = local.service_name
+#   }
+#   alarm_actions = [aws_appautoscaling_policy.scale_up.arn]
 
-  tags = local.tags
-}
+#   tags = local.tags
+# }
 
 /* -------------------------------------------------------------------------- */
 /*                         Auto Scaling Policy (DOWN)                         */
 /* -------------------------------------------------------------------------- */
-resource "aws_appautoscaling_policy" "scale_down" {
-  name               = format("%s-scale-down-policy", local.service_name)
-  depends_on         = [aws_appautoscaling_target.this]
-  service_namespace  = "ecs"
-  resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.service_name)
-  scalable_dimension = "ecs:service:DesiredCount"
-  step_scaling_policy_configuration {
-    adjustment_type         = "ChangeInCapacity"
-    cooldown                = 60
-    metric_aggregation_type = "Maximum"
-    step_adjustment {
-      metric_interval_upper_bound = 0
-      scaling_adjustment          = -1
-    }
-  }
-}
+# resource "aws_appautoscaling_policy" "scale_down" {
+#   name               = format("%s-scale-down-policy", local.service_name)
+#   depends_on         = [aws_appautoscaling_target.this]
+#   service_namespace  = "ecs"
+#   resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.service_name)
+#   scalable_dimension = "ecs:service:DesiredCount"
+#   policy_type        = "TargetTrackingScaling"
 
-resource "aws_cloudwatch_metric_alarm" "cpu_low" {
-  alarm_name          = format("%s-cpu-low-alarm", local.service_name)
-  comparison_operator = "LessThanOrEqualToThreshold"
-  evaluation_periods  = var.min_cpu_evaluation_period
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/ECS"
-  period              = var.min_cpu_period
-  statistic           = "Average"
-  threshold           = var.min_cpu_threshold
-  dimensions = {
-    ClusterName = var.ecs_cluster_name
-    ServiceName = local.service_name
-  }
-  alarm_actions = [aws_appautoscaling_policy.scale_down.arn]
+# step_scaling_policy_configuration {
+#   adjustment_type         = "ChangeInCapacity"
+#   cooldown                = var.scaling_cooldown
+#   metric_aggregation_type = "Average"
+#   step_adjustment {
+#     metric_interval_upper_bound = 0
+#     scaling_adjustment          = var.scaling_adjustment.scaling_in
+#   }
+# }
+# }
 
-  tags = local.tags
-}
+# resource "aws_cloudwatch_metric_alarm" "cpu_low" {
+#   alarm_name          = format("%s-cpu-low-alarm", local.service_name)
+#   comparison_operator = "LessThanOrEqualToThreshold"
+#   evaluation_periods  = var.min_cpu_evaluation_period
+#   metric_name         = "CPUUtilization"
+#   namespace           = "AWS/ECS"
+#   period              = var.min_cpu_period
+#   statistic           = "Average"
+#   threshold           = var.min_cpu_threshold
+#   dimensions = {
+#     ClusterName = var.ecs_cluster_name
+#     ServiceName = local.service_name
+#   }
+#   alarm_actions = [aws_appautoscaling_policy.scale_down.arn]
+
+#   tags = local.tags
+# }
+
+# TODO; Feature
+# - Health Check in ecs task def
+# - Scaling TargetTrackingScaling

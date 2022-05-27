@@ -227,7 +227,50 @@ variable "security_groups" {
 /* -------------------------------------------------------------------------- */
 /*                             Auto Scaling Group                             */
 /* -------------------------------------------------------------------------- */
-# TODO remove default later
+variable "scaling_configuration" {
+  description = <<EOF
+  EOF
+  type        = any
+  defautl = {
+    policy_type = "TargetTrackingScaling"
+    capacity = {
+      min_capacity = 1
+      max_capacity = 10
+    }
+    predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    scale_in_cooldown      = 60
+    scale_out_cooldown     = 60
+  }
+}
+
+variable "scaling_capacity" {
+  description = <<EOF
+  min_capacity - (Required) The min capacity of the scalable target.
+  max_capacity - (Required) The max capacity of the scalable target.
+  EOF
+  type = object({
+    min_capacity = number
+    max_capacity = number
+  })
+  default = {
+    max_capacity = 1
+    min_capacity = 1
+  }
+}
+
+variable "scaling_cooldown" {
+  description = <<EOF
+  scaling_in - (Optional) The amount of time, in seconds, after a scale in activity completes before another scale in activity can start.
+  scaling_out - (Optional) The amount of time, in seconds, after a scale out activity completes before another scale in activity can start.
+  EOF
+  type        = map(number)
+  default = {
+    "scaling_in"  = 60
+    "scaling_out" = 60
+  }
+}
+
+
 variable "max_cpu_evaluation_period" {
   description = "(Required) The number of periods over which data is compared to the specified threshold."
   type        = string
