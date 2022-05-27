@@ -352,37 +352,37 @@ resource "aws_appautoscaling_policy" "scale_up" {
   #   }
   # }
 
-  # dynamic "target_tracking_scaling_policy_configuration" {
-  #   for_each = var.scaling_configuration["policy_type"] == "TargetTrackingScaling" ? [true] : []
-  #   content {
-  #     predefined_metric_specification {
-  #       predefined_metric_type = lookup(var.scaling_configuration, "predefined_metric_type", null)
-  #     }
+  dynamic "target_tracking_scaling_policy_configuration" {
+    for_each = var.scaling_configuration["policy_type"] == "TargetTrackingScaling" ? [true] : []
+    content {
+      predefined_metric_specification {
+        predefined_metric_type = lookup(var.scaling_configuration, "predefined_metric_type", null)
+      }
 
-  #     target_value       = lookup(var.scaling_configuration, "target_value", null)
-  #     scale_in_cooldown  = lookup(var.scaling_configuration, "scale_in_cooldown", 60)
-  #     scale_out_cooldown = lookup(var.scaling_configuration, "scale_out_cooldown", 60)
-  #   }
-  # }
-}
-
-resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-  alarm_name          = format("%s-cpu-high-alarm", local.service_name)
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = var.max_cpu_evaluation_period
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/ECS"
-  period              = var.max_cpu_period
-  statistic           = "Average"
-  threshold           = var.max_cpu_threshold
-  dimensions = {
-    ClusterName = var.ecs_cluster_name
-    ServiceName = local.service_name
+      target_value       = lookup(var.scaling_configuration, "target_value", null)
+      scale_in_cooldown  = lookup(var.scaling_configuration, "scale_in_cooldown", 60)
+      scale_out_cooldown = lookup(var.scaling_configuration, "scale_out_cooldown", 60)
+    }
   }
-  alarm_actions = [aws_appautoscaling_policy.scale_up.arn]
-
-  tags = local.tags
 }
+
+# resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+#   alarm_name          = format("%s-cpu-high-alarm", local.service_name)
+#   comparison_operator = "GreaterThanOrEqualToThreshold"
+#   evaluation_periods  = var.max_cpu_evaluation_period
+#   metric_name         = "CPUUtilization"
+#   namespace           = "AWS/ECS"
+#   period              = var.max_cpu_period
+#   statistic           = "Average"
+#   threshold           = var.max_cpu_threshold
+#   dimensions = {
+#     ClusterName = var.ecs_cluster_name
+#     ServiceName = local.service_name
+#   }
+#   alarm_actions = [aws_appautoscaling_policy.scale_up.arn]
+
+#   tags = local.tags
+# }
 
 /* -------------------------------------------------------------------------- */
 /*                         Auto Scaling Policy (DOWN)                         */
