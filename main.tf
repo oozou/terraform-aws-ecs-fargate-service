@@ -331,30 +331,26 @@ resource "aws_appautoscaling_target" "this" {
 /* -------------------------------------------------------------------------- */
 /*                          Auto Scaling Policy (UP)                          */
 /* -------------------------------------------------------------------------- */
-# resource "aws_appautoscaling_policy" "scale_up" {
-#   depends_on = [aws_appautoscaling_target.this]
+resource "aws_appautoscaling_policy" "scaling_policies" {
+  for_each = var.scaling_configuration.scaling_behaviors
+  iterator = behavior
 
-#   for_each = var.scaling_configuration.scaling_behaviors
+  depends_on = [aws_appautoscaling_target.this]
 
-#   name               = format("%s-%s-scale-policy", local.service_name, each.value)
-#   resource_id        = aws_appautoscaling_target.this.resource_id
-#   scalable_dimension = aws_appautoscaling_target.this.scalable_dimension
-#   service_namespace  = aws_appautoscaling_target.this.service_namespace
+  name               = format("%s-%s-scaling-policy", local.service_name, behavior.key)
+  resource_id        = aws_appautoscaling_target.this.resource_id
+  scalable_dimension = aws_appautoscaling_target.this.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.this.service_namespace
 
-#   policy_type = lookup(var.scaling_configuration, "policy_type", null)
+  policy_type = lookup(var.scaling_configuration, "policy_type", null)
 
-#   dynamic "target_tracking_scaling_policy_configuration" {
-#     for_each = var.scaling_configuration["policy_type"] == "TargetTrackingScaling" ? var.scaling_configuration.scaling_behaviors : null
-#     iterator = config
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = lookup(behavior, "predefined_metric_type", null)
+    }
 
-#     content {
-#       predefined_metric_specification {
-#         predefined_metric_type = lookup(config, "predefined_metric_type", null)
-#       }
-
-#       target_value       = lookup(config, "target_value", null)
-#       scale_in_cooldown  = lookup(config, "scale_in_cooldown", 60)
-#       scale_out_cooldown = lookup(config, "scale_out_cooldown", 60)
-#     }
-#   }
-# }
+    target_value       = lookup(behavior, "target_value", null)
+    scale_in_cooldown  = lookup(behavior, "scale_in_cooldown", 60)
+    scale_out_cooldown = lookup(behavior, "scale_out_cooldown", 60)
+  }
+}
