@@ -343,13 +343,22 @@ resource "aws_appautoscaling_policy" "scaling_policies" {
 
   policy_type = lookup(var.scaling_configuration, "policy_type", null)
 
-  target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = lookup(each.value, "predefined_metric_type", null)
-    }
+  dynamic "target_tracking_scaling_policy_configuration" {
+    for_each = var.scaling_configuration.policy_type == "TargetTrackingScaling" ? var.scaling_configuration.scaling_behaviors[each.key] : {}
 
-    target_value       = lookup(each.value, "target_value", null)
-    scale_in_cooldown  = lookup(each.value, "scale_in_cooldown", 60)
-    scale_out_cooldown = lookup(each.value, "scale_out_cooldown", 60)
+    content {
+      predefined_metric_specification {
+        predefined_metric_type = lookup(each.value, "predefined_metric_type", null)
+      }
+
+      target_value       = lookup(each.value, "target_value", null)
+      scale_in_cooldown  = lookup(each.value, "scale_in_cooldown", 180)
+      scale_out_cooldown = lookup(each.value, "scale_out_cooldown", 60)
+    }
   }
 }
+
+# https://github.com/cn-terraform/terraform-aws-ecs-service-autoscaling/blob/main/main.tf
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_alarm
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_target
