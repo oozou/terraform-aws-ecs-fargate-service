@@ -229,70 +229,10 @@ variable "security_groups" {
 /* -------------------------------------------------------------------------- */
 variable "scaling_configuration" {
   description = <<EOF
+  configuration of scaling configuration support both target tracking and step scaling policies
+  https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PredefinedMetricSpecification.html
+  https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cloudwatch-metrics.html
   EOF
   type        = any
-}
-
-variable "scaling_capacity" {
-  description = <<EOF
-  min_capacity - (Required) The min capacity of the scalable target.
-  max_capacity - (Required) The max capacity of the scalable target.
-  EOF
-  type = object({
-    min_capacity = number
-    max_capacity = number
-  })
-  default = {
-    max_capacity = 1
-    min_capacity = 1
-  }
-}
-
-variable "scaling_cooldown" {
-  description = <<EOF
-  scaling_in - (Optional) The amount of time, in seconds, after a scale in activity completes before another scale in activity can start.
-  scaling_out - (Optional) The amount of time, in seconds, after a scale out activity completes before another scale in activity can start.
-  EOF
-  type        = map(number)
-  default = {
-    "scaling_in"  = 60
-    "scaling_out" = 60
-  }
-}
-
-
-variable "max_cpu_evaluation_period" {
-  description = "(Required) The number of periods over which data is compared to the specified threshold."
-  type        = string
-  default     = "1"
-}
-
-variable "max_cpu_period" {
-  description = "(Optional) The period in seconds over which the specified statistic is applied."
-  type        = string
-  default     = "60"
-}
-
-variable "max_cpu_threshold" {
-  description = "(Optional) The value against which the specified statistic is compared. This parameter is required for alarms based on static thresholds, but should not be used for alarms based on anomaly detection models."
-  type        = string
-  default     = "50"
-}
-
-variable "min_cpu_evaluation_period" {
-  description = "(Required) The number of periods over which data is compared to the specified threshold."
-  type        = string
-  default     = "1"
-}
-
-variable "min_cpu_period" {
-  description = "(Optional) The period in seconds over which the specified statistic is applied."
-  type        = string
-  default     = "60"
-}
-
-variable "min_cpu_threshold" {
-  description = "(Optional) The value against which the specified statistic is compared. This parameter is required for alarms based on static thresholds, but should not be used for alarms based on anomaly detection models."
-  type        = string
-  default     = "30"
+  default     = {}
 }
