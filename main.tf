@@ -344,7 +344,7 @@ resource "aws_appautoscaling_policy" "scaling_policies" {
   policy_type = lookup(var.scaling_configuration, "policy_type", null)
 
   dynamic "target_tracking_scaling_policy_configuration" {
-    for_each = var.scaling_configuration.policy_type == "TargetTrackingScaling" ? var.scaling_configuration.scaling_behaviors[each.key] : {}
+    count = var.scaling_configuration.policy_type == "TargetTrackingScaling" ? 1 : 0
 
     content {
       predefined_metric_specification {
