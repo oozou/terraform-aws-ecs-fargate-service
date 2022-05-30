@@ -1,4 +1,3 @@
-/* ---------------------------------- Data ---------------------------------- */
 data "aws_caller_identity" "current" {
 }
 
@@ -130,4 +129,16 @@ locals {
   ]
   # Concat Secret and JSON Secret to the one list.
   secrets_task_definition = concat(local.secrets_task_unique_definition, local.secrets_json_task_definition)
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                Auto Scaling                                */
+/* -------------------------------------------------------------------------- */
+locals {
+  comparison_operators = {
+    ">=" = "GreaterThanOrEqualToThreshold",
+    ">"  = "GreaterThanThreshold",
+    "<"  = "LessThanThreshold",
+    "<=" = "LessThanOrEqualToThreshold",
+  }
 }

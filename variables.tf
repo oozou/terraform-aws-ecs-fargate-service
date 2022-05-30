@@ -223,3 +223,16 @@ variable "security_groups" {
   description = "Security groups to apply to service"
   type        = list(string)
 }
+
+/* -------------------------------------------------------------------------- */
+/*                             Auto Scaling Group                             */
+/* -------------------------------------------------------------------------- */
+variable "scaling_configuration" {
+  description = <<EOF
+  configuration of scaling configuration support both target tracking and step scaling policies
+  https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PredefinedMetricSpecification.html
+  https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cloudwatch-metrics.html
+  EOF
+  type        = any
+  default     = {}
+}

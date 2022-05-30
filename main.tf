@@ -308,8 +308,100 @@ resource "aws_ecs_service" "this" {
   }
 
   lifecycle {
-    ignore_changes = [task_definition]
+    ignore_changes = [
+      task_definition,
+      desired_count
+    ]
   }
 
   tags = merge(local.tags, { Name = format("%s", local.service_name) })
 }
+
+/* -------------------------------------------------------------------------- */
+/*                             Auto Scaling Target                            */
+/* -------------------------------------------------------------------------- */
+resource "aws_appautoscaling_target" "this" {
+  count = var.scaling_configuration == {} ? 0 : 1
+
+  max_capacity       = var.scaling_configuration.capacity.max_capacity
+  min_capacity       = var.scaling_configuration.capacity.min_capacity
+  resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.service_name)
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+/* -------------------------------------------------------------------------- */
+/*                             Auto Scaling Policy                            */
+/* -------------------------------------------------------------------------- */
+resource "aws_appautoscaling_policy" "target_tracking_scaling_policies" {
+  for_each = try(var.scaling_configuration.policy_type, null) == "TargetTrackingScaling" ? var.scaling_configuration.scaling_behaviors : {}
+
+  depends_on = [aws_appautoscaling_target.this[0]]
+
+  name               = format("%s-%s-scaling-policy", local.service_name, each.key)
+  resource_id        = aws_appautoscaling_target.this[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.this[0].service_namespace
+
+  policy_type = lookup(var.scaling_configuration, "policy_type", null)
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = lookup(each.value, "predefined_metric_type", null)
+    }
+
+    target_value       = lookup(each.value, "target_value", null)
+    scale_in_cooldown  = lookup(each.value, "scale_in_cooldown", 180)
+    scale_out_cooldown = lookup(each.value, "scale_out_cooldown", 60)
+  }
+}
+
+resource "aws_appautoscaling_policy" "step_scaling_policies" {
+  for_each = try(var.scaling_configuration.policy_type, null) == "StepScaling" ? var.scaling_configuration.scaling_behaviors : {}
+
+  depends_on = [aws_appautoscaling_target.this[0]]
+
+  name               = format("%s-%s-scaling-policy", local.service_name, each.key)
+  resource_id        = aws_appautoscaling_target.this[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.this[0].service_namespace
+
+  policy_type = lookup(var.scaling_configuration, "policy_type", null)
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = lookup(each.value, "cooldown", 60)
+    metric_aggregation_type = lookup(each.value, "statistic", "Average")
+    step_adjustment {
+      metric_interval_lower_bound = 0
+      scaling_adjustment          = lookup(each.value, "scaling_adjustment", null)
+    }
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "step_alarm" {
+  for_each = try(var.scaling_configuration.policy_type, null) == "StepScaling" ? var.scaling_configuration.scaling_behaviors : {}
+
+  alarm_name          = format("%s-%s-alarm", local.service_name, each.key)
+  comparison_operator = local.comparison_operators[lookup(each.value, "comparison_operator", null)]
+  evaluation_periods  = lookup(each.value, "evaluation_periods", null)
+  metric_name         = lookup(each.value, "metric_name", null)
+  namespace           = "AWS/ECS"
+  period              = lookup(each.value, "period", null)
+  statistic           = lookup(each.value, "statistic", "Average")
+  threshold           = lookup(each.value, "threshold", null)
+
+  dimensions = {
+    ClusterName = var.ecs_cluster_name
+    ServiceName = local.service_name
+  }
+
+  alarm_actions = [aws_appautoscaling_policy.step_scaling_policies[each.key].arn]
+
+  tags = var.tags
+}
+
+# https://github.com/cn-terraform/terraform-aws-ecs-service-autoscaling/blob/main/main.tf
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_alarm
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_target
