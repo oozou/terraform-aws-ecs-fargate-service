@@ -98,13 +98,13 @@ scaling_configuration = {
     cpu_average = {
       predefined_metric_type = "ECSServiceAverageCPUUtilization"
       target_value           = 60
-      scale_in_cooldown      = 60
+      scale_in_cooldown      = 180
       scale_out_cooldown     = 60
     }
     memory_average = {
       predefined_metric_type = "ECSServiceAverageMemoryUtilization"
       target_value           = 60
-      scale_in_cooldown      = 60
+      scale_in_cooldown      = 180
       scale_out_cooldown     = 60
     }
   }
@@ -137,8 +137,8 @@ scaling_configuration = {
       comparison_operator = "<"
       threshold           = "50"
       period              = "60"
-      evaluation_periods  = "1"
-      cooldown            = 60
+      evaluation_periods  = "10"
+      cooldown            = 180
       scaling_adjustment  = -1
     }
   }
