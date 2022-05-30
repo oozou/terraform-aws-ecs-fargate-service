@@ -1,26 +1,31 @@
 [
   {
-     "cpu":${cpu},
-     "image":"${service_image}",
-     "memory":${memory},
-     "name":"${service_name}",
-     "networkMode":"awsvpc",
-     "essential":true,
-     "logConfiguration":{
+    "cpu":${cpu},
+    "image":"${service_image}",
+    "memory":${memory},
+    "name":"${service_name}",
+    "networkMode":"awsvpc",
+    "essential":true,
+    "logConfiguration":{
         "logDriver":"awslogs",
         "options":{
-           "awslogs-group":"${log_group_name}",
-           "awslogs-region":"${region}",
-           "awslogs-stream-prefix":"${service_name}"
+            "awslogs-group":"${log_group_name}",
+            "awslogs-region":"${region}",
+            "awslogs-stream-prefix":"${service_name}"
         }
-     },
-     "portMappings":[
+    },
+    "portMappings":[
         {
-           "containerPort":${service_port},
-           "hostPort":${service_port}
+            "containerPort":${service_port},
+            "hostPort":${service_port}
         }
-     ],
-     "environment" : ${envvars},
-     "secrets" : ${secrets_task_definition}
+    ],
+    "environment" : ${envvars},
+    "secrets" : ${secrets_task_definition},
+    "healthCheck": {
+        "command": ${health_check_command},
+        "interval": ${health_check_interval},
+        "timeout": ${health_check_timeout}
+    }
   }
 ]
