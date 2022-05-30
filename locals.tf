@@ -60,6 +60,16 @@ locals {
 /*                               Task Definition                              */
 /* -------------------------------------------------------------------------- */
 locals {
+  # default healthCheck command
+  default_health_check_command = ["CMD-SHELL", format("curl -sf http://localhost:%s%s", var.service_info.port, var.health_check.path)]
+
+  # healthCheck
+  health_check = {
+    command  = length(var.health_check_command_override) > 0 ? var.health_check_command_override : local.default_health_check_command,
+    interval = var.health_check.interval
+    timeout  = var.health_check.timeout
+  }
+
   # TODO make it better later
   container_definitions = local.is_apm_enabled ? templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", {
     cpu                     = var.service_info.cpu_allocation
@@ -71,6 +81,9 @@ locals {
     service_port            = var.service_info.port
     envvars                 = jsonencode(var.envvars)
     secrets_task_definition = jsonencode(local.secrets_task_definition)
+    health_check_command    = jsonencode(local.health_check.command)
+    health_check_interval   = local.health_check.interval
+    health_check_timeout    = local.health_check.timeout
     apm_cpu                 = var.apm_config.cpu
     apm_sidecar_ecr_url     = var.apm_sidecar_ecr_url
     apm_memory              = var.apm_config.memory
@@ -86,6 +99,9 @@ locals {
     service_port            = var.service_info.port
     envvars                 = jsonencode(var.envvars)
     secrets_task_definition = jsonencode(local.secrets_task_definition)
+    health_check_command    = jsonencode(local.health_check.command)
+    health_check_interval   = local.health_check.interval
+    health_check_timeout    = local.health_check.timeout
   })
 }
 

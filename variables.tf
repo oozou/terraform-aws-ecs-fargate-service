@@ -223,3 +223,9 @@ variable "security_groups" {
   description = "Security groups to apply to service"
   type        = list(string)
 }
+
+variable "health_check_command_override" {
+  description = "Option to override a default health check command."
+  type        = list(string)
+  default     = []
+}
