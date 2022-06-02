@@ -398,7 +398,7 @@ resource "aws_cloudwatch_metric_alarm" "step_alarm" {
 
   alarm_actions = [aws_appautoscaling_policy.step_scaling_policies[each.key].arn]
 
-  tags = var.tags
+  tags = merge(local.tags, { "Name" = format("%s-%s-alarm", local.service_name, each.key) })
 }
 
 # https://github.com/cn-terraform/terraform-aws-ecs-service-autoscaling/blob/main/main.tf
