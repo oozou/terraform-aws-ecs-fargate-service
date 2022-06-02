@@ -22,10 +22,11 @@
     ],
     "environment" : ${envvars},
     "secrets" : ${secrets_task_definition},
+%{ if attach_lb == false }
     "healthCheck": {
         "command": ${health_check_command},
         "interval": ${health_check_interval},
         "timeout": ${health_check_timeout}
     }
-  }
+%{ endif }
 ]

@@ -61,6 +61,8 @@ locals {
 /* -------------------------------------------------------------------------- */
 locals {
   # default healthCheck command
+  # curl is not include with docker with default.
+  # Ensure curl is installed along with application container
   default_health_check_command = ["CMD-SHELL", format("curl -sf http://localhost:%s%s", var.service_info.port, var.health_check.path)]
 
   # healthCheck
@@ -72,6 +74,7 @@ locals {
 
   # TODO make it better later
   container_definitions = local.is_apm_enabled ? templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", {
+    attach_lb               = var.is_attach_service_with_lb
     cpu                     = var.service_info.cpu_allocation
     service_image           = var.service_info.image
     memory                  = var.service_info.mem_allocation
@@ -90,6 +93,7 @@ locals {
     apm_name                = local.apm_name
     apm_service_port        = var.apm_config.service_port
     }) : templatefile("${path.module}/task-definitions/service-main-container.json", {
+    attach_lb               = var.is_attach_service_with_lb
     cpu                     = var.service_info.cpu_allocation
     service_image           = var.service_info.image
     memory                  = var.service_info.mem_allocation
