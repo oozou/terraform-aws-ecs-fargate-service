@@ -70,7 +70,7 @@ variable "is_create_cloudwatch_log_group" {
   default     = true
 }
 
-variable "cloudwatch_log_retention_days" {
+variable "cloudwatch_log_retention_in_days" {
   description = "Retention day for cloudwatch log group"
   type        = number
   default     = 90
