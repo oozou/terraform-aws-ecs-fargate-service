@@ -36,7 +36,9 @@ module "fargate_service" {
   }
 
   # Logging
-  is_create_cloudwatch_log_group = true # Default is `true`
+  is_create_cloudwatch_log_group   = true # Default is `true`
+  cloudwatch_log_retention_in_days = 90   # Default is 90 days
+  cloudwatch_log_kms_key_id        = null # Specify the kms to encrypt cloudwatch log
 
   # Task definition
   service_info = {
