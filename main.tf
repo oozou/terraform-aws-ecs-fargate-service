@@ -158,11 +158,13 @@ resource "aws_lb_listener_rule" "this" {
 /*                                   Secret                                   */
 /* -------------------------------------------------------------------------- */
 module "secret_kms_key" {
-  source = "git@github.com:oozou/terraform-aws-kms-key.git?ref=v0.0.1"
+  source = "git@github.com:oozou/terraform-aws-kms-key.git?ref=v1.0.0"
 
-  alias_name           = format("%s-service-secrets", local.service_name)
-  append_random_suffix = true
+  name                 = format("%s-service-secrets", local.service_name)
+  prefix               = var.prefix
+  environment          = var.environment
   key_type             = "service"
+  append_random_suffix = true
   description          = format("Secure Secrets Manager's service secrets for service %s", local.service_name)
 
   service_key_info = {
@@ -170,7 +172,7 @@ module "secret_kms_key" {
     caller_account_ids = tolist([data.aws_caller_identity.current.account_id])
   }
 
-  custom_tags = merge(local.tags, { "Name" : format("%s-service-secrets", local.service_name) })
+  tags = merge(local.tags, { "Name" : format("%s-service-secrets", local.service_name) })
 }
 
 # Append random string to SM Secret names because once we tear down the infra, the secret does not actually
