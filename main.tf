@@ -296,14 +296,14 @@ resource "aws_ecs_service" "this" {
     security_groups = var.security_groups
     subnets         = var.application_subnet_ids
   }
+  
+  dynamic "ordered_placement_strategy" {
+    for_each = var.ordered_placement_strategy
+    content {
+      type = ordered_placement_strategy.value.type
+      field = ordered_placement_strategy.value.field
+    }
 
-  ordered_placement_strategy {
-    type  = "spread"
-    field = "attribute:ecs.availability-zone"
-  }
-  ordered_placement_strategy {
-    type  = "spread"
-    field = "instanceId"
   }
 
   service_registries {

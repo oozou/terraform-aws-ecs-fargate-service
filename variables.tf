@@ -257,3 +257,15 @@ variable "capacity_provider_strategy" {
   type        = map(any)
   default     = null
 }
+
+variable "ordered_placement_strategy" {
+  description = ""
+  type = set(object({
+    type  = string
+    field = string
+  }))
+  default = [{
+    type  = "spread"
+    field = "attribute:ecs.availability-zone"
+  }]
+}
