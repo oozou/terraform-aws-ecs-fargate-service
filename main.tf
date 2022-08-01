@@ -250,8 +250,7 @@ EOF
 resource "aws_ecs_task_definition" "this" {
   family                   = local.service_name
   network_mode             = "awsvpc"
-  # requires_compatibilities = ["FARGATE", "EC2"]
-  requires_compatibilities = []
+  requires_compatibilities = ["FARGATE", "EC2"]
   cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
   memory                   = local.is_apm_enabled ? var.service_info.mem_allocation + var.apm_config.memory : var.service_info.mem_allocation
   execution_role_arn       = local.task_execution_role_arn
@@ -291,7 +290,6 @@ resource "aws_ecs_service" "this" {
   desired_count          = var.service_count
   enable_execute_command = var.is_enable_execute_command
   enable_ecs_managed_tags = true
-  # scheduling_strategy    = "REPLICA"
   launch_type            = var.capacity_provider_strategy  == null ? "FARGATE" : null
 
   network_configuration {
@@ -308,19 +306,19 @@ resource "aws_ecs_service" "this" {
     field = "instanceId"
   }
 
-  # service_registries {
-  #   registry_arn   = aws_service_discovery_service.service.arn
-  #   container_name = local.service_name
-  # }
+  service_registries {
+    registry_arn   = aws_service_discovery_service.service.arn
+    container_name = local.service_name
+  }
 
-  # dynamic "capacity_provider_strategy"{
-  #   for_each = var.capacity_provider_strategy  == null ? [] : [true]
-  #   content {
-  #     base = var.capacity_provider_strategy.base
-  #     capacity_provider  = var.capacity_provider_strategy.capacity_provider
-  #     weight            =  var.capacity_provider_strategy.weight
-  #   }
-  # }
+  dynamic "capacity_provider_strategy"{
+    for_each = var.capacity_provider_strategy  == null ? [] : [true]
+    content {
+      base = var.capacity_provider_strategy.base
+      capacity_provider  = var.capacity_provider_strategy.capacity_provider
+      weight            =  var.capacity_provider_strategy.weight
+    }
+  }
 
   dynamic "load_balancer" {
     for_each = var.is_attach_service_with_lb ? [true] : []
