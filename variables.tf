@@ -248,3 +248,12 @@ variable "scaling_configuration" {
   type        = any
   default     = {}
 }
+
+/* -------------------------------------------------------------------------- */
+/*                      capacity provider strategy                            */
+/* -------------------------------------------------------------------------- */
+variable "capacity_provider_strategy" {
+  description = ""
+  type        = map(any)
+  default     = null
+}
