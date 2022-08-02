@@ -344,12 +344,9 @@ resource "aws_ecs_service" "this" {
     }
   }
 
-  dynamic "deployment_circuit_breaker" {
-    for_each = var.deployment_circuit_breaker == null ? [] : [true]
-    content {
-      enable   = var.deployment_circuit_breaker.enable
-      rollback = var.deployment_circuit_breaker.rollback
-    }
+  deployment_circuit_breaker {
+    enable   = var.deployment_circuit_breaker.enable
+    rollback = var.deployment_circuit_breaker.rollback
   }
 
   dynamic "load_balancer" {
@@ -361,12 +358,12 @@ resource "aws_ecs_service" "this" {
     }
   }
 
-  # lifecycle {
-  #   ignore_changes = [
-  #     task_definition,
-  #     desired_count
-  #   ]
-  # }
+  lifecycle {
+    ignore_changes = [
+      task_definition,
+      desired_count
+    ]
+  }
 
   tags = merge(local.tags, { Name = format("%s", local.service_name) })
 }
