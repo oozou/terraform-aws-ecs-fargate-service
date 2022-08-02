@@ -250,13 +250,38 @@ EOF
 resource "aws_ecs_task_definition" "this" {
   family                   = local.service_name
   network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE", "EC2"]
+  requires_compatibilities = var.capacity_provider_strategy  == null ? ["FARGATE"] : ["EC2"]
   cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
   memory                   = local.is_apm_enabled ? var.service_info.mem_allocation + var.apm_config.memory : var.service_info.mem_allocation
   execution_role_arn       = local.task_execution_role_arn
   task_role_arn            = local.task_role_arn
 
-  container_definitions = local.container_definitions
+  container_definitions = var.capacity_provider_strategy  == null ? local.container_definitions : local.container_definitions_ec2
+
+  dynamic "volume" {
+    for_each = local.volumes
+    content {
+      host_path = lookup(volume.value, "host_path", null)
+      name      = volume.value.name
+
+      dynamic "efs_volume_configuration" {
+        for_each = lookup(volume.value, "efs_volume_configuration", [])
+        content {
+          file_system_id          = lookup(efs_volume_configuration.value, "file_system_id", null)
+          root_directory          = lookup(efs_volume_configuration.value, "root_directory", null)
+          transit_encryption      = lookup(efs_volume_configuration.value, "transit_encryption", null)
+          transit_encryption_port = lookup(efs_volume_configuration.value, "transit_encryption_port", null)
+          dynamic "authorization_config" {
+            for_each = lookup(efs_volume_configuration.value, "authorization_config", [])
+            content {
+              access_point_id = lookup(authorization_config.value, "access_point_id", null)
+              iam             = lookup(authorization_config.value, "iam", null)
+            }
+          }
+        }
+      }
+    }
+  }
 
   tags = merge(local.tags, { "Name" = local.service_name })
 }
@@ -296,14 +321,13 @@ resource "aws_ecs_service" "this" {
     security_groups = var.security_groups
     subnets         = var.application_subnet_ids
   }
-  
+
   dynamic "ordered_placement_strategy" {
-    for_each = var.ordered_placement_strategy
+    for_each = var.capacity_provider_strategy  == null ? [] : var.ordered_placement_strategy
     content {
       type = ordered_placement_strategy.value.type
       field = ordered_placement_strategy.value.field
     }
-
   }
 
   service_registries {
@@ -317,6 +341,14 @@ resource "aws_ecs_service" "this" {
       base = var.capacity_provider_strategy.base
       capacity_provider  = var.capacity_provider_strategy.capacity_provider
       weight            =  var.capacity_provider_strategy.weight
+    }
+  }
+
+  dynamic "deployment_circuit_breaker" {
+    for_each = var.deployment_circuit_breaker == null ? [] : [true]
+    content {
+      enable  = var.deployment_circuit_breaker.enable
+      rollback = var.deployment_circuit_breaker.rollback
     }
   }
 

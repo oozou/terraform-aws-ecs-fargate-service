@@ -23,6 +23,12 @@
      "environment" : ${envvars},
      "secrets" : ${secrets_task_definition},
      "entryPoint": ${entry_point},
-     "command": ${command}
+     "command": ${command},
+     "systemControls": [
+      {
+         "namespace": "net.core.somaxconn",
+         "value": "${unix_max_connection}"
+      }
+   ]
   }
 ]

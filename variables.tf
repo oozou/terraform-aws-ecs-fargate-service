@@ -253,7 +253,7 @@ variable "scaling_configuration" {
 /*                      capacity provider strategy                            */
 /* -------------------------------------------------------------------------- */
 variable "capacity_provider_strategy" {
-  description = ""
+  description = "Capacity provider strategies to use for the service EC2 Autoscaling group"
   type        = map(any)
   default     = null
 }
@@ -267,5 +267,51 @@ variable "ordered_placement_strategy" {
   default = [{
     type  = "spread"
     field = "attribute:ecs.availability-zone"
+  }]
+}
+
+variable "unix_max_connection" {
+  description = "Number of net.core.somaxconn"
+  type        = number
+  default     = 4096
+}
+
+/* -------------------------------------------------------------------------- */
+/*                           Entrypoint and command                           */
+/* -------------------------------------------------------------------------- */
+variable "entry_point" {
+  description = "Entrypoint to override"
+  type        = list(string)
+  default     = []
+}
+
+variable "command" {
+  description = "Command to override"
+  type        = list(string)
+  default     = []
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   volume                                   */
+/* -------------------------------------------------------------------------- */
+variable "efs_volumes" {
+  type = list(any)
+
+  description = "Task EFS volume definitions as list of configuration objects. You cannot define both Docker volumes and EFS volumes on the same task definition."
+  default     = []
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   Rollback                                 */
+/* -------------------------------------------------------------------------- */
+variable "deployment_circuit_breaker" {
+  description = "Configuration block for deployment circuit breaker"
+  type = set(object({
+    enable  = bool
+    rollback = bool
+  }))
+  default = [{
+    enable = true
+    rollback = true
   }]
 }

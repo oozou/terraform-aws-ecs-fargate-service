@@ -21,7 +21,9 @@
          }
       ],
       "environment" : ${envvars},
-      "secrets" : ${secrets_task_definition}
+      "secrets" : ${secrets_task_definition},
+      "entryPoint": ${entry_point},
+      "command": ${command}
   },
   {
        "cpu":${apm_cpu},
