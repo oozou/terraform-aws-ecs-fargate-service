@@ -250,13 +250,13 @@ EOF
 resource "aws_ecs_task_definition" "this" {
   family                   = local.service_name
   network_mode             = "awsvpc"
-  requires_compatibilities = var.capacity_provider_strategy  == null ? ["FARGATE"] : ["EC2"]
+  requires_compatibilities = var.capacity_provider_strategy == null ? ["FARGATE"] : ["EC2"]
   cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
   memory                   = local.is_apm_enabled ? var.service_info.mem_allocation + var.apm_config.memory : var.service_info.mem_allocation
   execution_role_arn       = local.task_execution_role_arn
   task_role_arn            = local.task_role_arn
 
-  container_definitions = var.capacity_provider_strategy  == null ? local.container_definitions : local.container_definitions_ec2
+  container_definitions = var.capacity_provider_strategy == null ? local.container_definitions : local.container_definitions_ec2
 
   dynamic "volume" {
     for_each = local.volumes
@@ -309,13 +309,13 @@ resource "aws_service_discovery_service" "service" {
 }
 
 resource "aws_ecs_service" "this" {
-  name                   = format("%s", local.service_name)
-  cluster                = local.ecs_cluster_arn
-  task_definition        = aws_ecs_task_definition.this.arn
-  desired_count          = var.service_count
-  enable_execute_command = var.is_enable_execute_command
+  name                    = format("%s", local.service_name)
+  cluster                 = local.ecs_cluster_arn
+  task_definition         = aws_ecs_task_definition.this.arn
+  desired_count           = var.service_count
+  enable_execute_command  = var.is_enable_execute_command
   enable_ecs_managed_tags = true
-  launch_type            = var.capacity_provider_strategy  == null ? "FARGATE" : null
+  launch_type             = var.capacity_provider_strategy == null ? "FARGATE" : null
 
   network_configuration {
     security_groups = var.security_groups
@@ -323,9 +323,9 @@ resource "aws_ecs_service" "this" {
   }
 
   dynamic "ordered_placement_strategy" {
-    for_each = var.capacity_provider_strategy  == null ? [] : var.ordered_placement_strategy
+    for_each = var.capacity_provider_strategy == null ? [] : var.ordered_placement_strategy
     content {
-      type = ordered_placement_strategy.value.type
+      type  = ordered_placement_strategy.value.type
       field = ordered_placement_strategy.value.field
     }
   }
@@ -335,19 +335,19 @@ resource "aws_ecs_service" "this" {
     container_name = local.service_name
   }
 
-  dynamic "capacity_provider_strategy"{
-    for_each = var.capacity_provider_strategy  == null ? [] : [true]
+  dynamic "capacity_provider_strategy" {
+    for_each = var.capacity_provider_strategy == null ? [] : [true]
     content {
-      base = var.capacity_provider_strategy.base
-      capacity_provider  = var.capacity_provider_strategy.capacity_provider
-      weight            =  var.capacity_provider_strategy.weight
+      base              = var.capacity_provider_strategy.base
+      capacity_provider = var.capacity_provider_strategy.capacity_provider
+      weight            = var.capacity_provider_strategy.weight
     }
   }
 
   dynamic "deployment_circuit_breaker" {
     for_each = var.deployment_circuit_breaker == null ? [] : [true]
     content {
-      enable  = var.deployment_circuit_breaker.enable
+      enable   = var.deployment_circuit_breaker.enable
       rollback = var.deployment_circuit_breaker.rollback
     }
   }

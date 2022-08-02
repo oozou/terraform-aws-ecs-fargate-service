@@ -307,11 +307,11 @@ variable "efs_volumes" {
 variable "deployment_circuit_breaker" {
   description = "Configuration block for deployment circuit breaker"
   type = set(object({
-    enable  = bool
+    enable   = bool
     rollback = bool
   }))
   default = [{
-    enable = true
+    enable   = true
     rollback = true
   }]
 }
