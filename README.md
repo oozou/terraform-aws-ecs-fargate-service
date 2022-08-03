@@ -1,90 +1,7 @@
 ## Usage
 
 ```terraform
-module "fargate_service" {
-  source = "git::ssh://git@github.com/company/terraform-aws-ecs-fargate-service.git?ref=<version_or_branch>"
-
-  # Generics
-  prefix      = "customer"
-  environment = "dev"
-  name        = "demo"
-
-  # IAM Role
-  is_create_iam_role                             = true # Default is `true`
-  exists_task_role_arn                           = ""   # Required when is_create_iam_role is `false`
-  additional_ecs_task_role_policy_arns           = []   # Default is `[]`, already attaced ["arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"]
-  exists_task_execution_role_arn                 = ""   # Required when is_create_iam_role is `false`
-  additional_ecs_task_execution_role_policy_arns = []   # Default is `[]`, already attaced ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
-
-  # ALB
-  is_attach_service_with_lb = true # Default is `true`
-  ## If is_attach_service_with_lb is set to 'false,' the subsequent parameters are ignored.
-  alb_listener_arn    = module.ecs_cluster.alb_listener_http_arn
-  alb_paths           = ["/*"]                                     # List of alb path, default is [] will process as `["*"]` in module
-  alb_priority        = "100"
-  alb_host_header     = "demo-big.customer-develop.millenium-m.me" # Default is `null`
-  custom_header_token = ""                                         # Default is `""`, specific for only allow header with given token ex. "asdskjhekewhdk"
-  ## Target group that listener will take action
-  vpc_id = module.vpc.vpc_id
-  health_check = {
-    interval            = 30
-    path                = "/health"
-    timeout             = 10
-    healthy_threshold   = 3
-    unhealthy_threshold = 3
-    matcher             = "200,201,204"
-  }
-
-  # Logging
-  is_create_cloudwatch_log_group   = true # Default is `true`
-  cloudwatch_log_retention_in_days = 90   # Default is 90 days
-  cloudwatch_log_kms_key_id        = null # Specify the kms to encrypt cloudwatch log
-
-  # Task definition
-  service_info = {
-    containers_num = 2
-    cpu_allocation = 256
-    mem_allocation = 512
-    port           = 8080
-    image          = "nginx"
-  }
-  apm_sidecar_ecr_url = "" # Default is `""`. If specific, the APM is auto enable
-  apm_config          = {} # There's default value, ignore if apm_sidecar_ecr_url is `""`
-
-  # Secret
-  secrets = {
-    "DB_PASSWORD"         = "aa"
-    "REDIS_PASSWORD"      = "vv"
-    "API_SB_CRM_PASSWORD" = "cc"
-    "S3_KMS_KEY_ID"       = "dd"
-  }
-  ## Optional json_secrets will create 1 asm in term of json; json_secrets -> {"name": "value", ...}
-  json_secrets = {
-    "DB_PASSWORD"         = "aa"
-    "REDIS_PASSWORD"      = "vv"
-    "API_SB_CRM_PASSWORD" = "cc"
-    "S3_KMS_KEY_ID"       = "dd"
-  }
-
-  # ECS service
-  ecs_cluster_name            = module.ecs_cluster.ecs_cluster_name
-  service_discovery_namespace = module.ecs_cluster.service_discovery_namespace
-  service_count               = 1     # Default is `1`
-  is_enable_execute_command   = false # Default is `false`
-  application_subnet_ids      = module.vpc.private_subnet_ids
-  security_groups = [
-    module.ecs_fargate_cluster.ecs_task_security_group_id,
-    module.rds_mssql.db_client_security_group_id,
-    module.redis.db_client_security_group_id
-  ]
-
-  # Auto Scaling Group
-  scaling_configuration = {} #### See Below
-
-  tags = {
-    "Workspace" = "custom-workspace"
-  }
-}
+see at examples/simple
 ```
 
 ### Target Tracking Policies
@@ -160,8 +77,8 @@ scaling_configuration = {
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 4.00 |
-| <a name="provider_random"></a> [random](#provider\_random) | >= 2.3.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 4.21.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.3.2 |
 
 ## Modules
 
@@ -221,9 +138,14 @@ scaling_configuration = {
 | <a name="input_alb_priority"></a> [alb\_priority](#input\_alb\_priority) | Priority of ALB rule https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#listener-rules | `string` | `"100"` | no |
 | <a name="input_apm_config"></a> [apm\_config](#input\_apm\_config) | Config for X-Ray sidecar container for APM and traceability | <pre>object({<br>    service_port = number<br>    cpu          = number<br>    memory       = number<br>  })</pre> | <pre>{<br>  "cpu": 256,<br>  "memory": 512,<br>  "service_port": 9000<br>}</pre> | no |
 | <a name="input_apm_sidecar_ecr_url"></a> [apm\_sidecar\_ecr\_url](#input\_apm\_sidecar\_ecr\_url) | [Optional] To enable APM, set Sidecar ECR URL | `string` | `""` | no |
+| <a name="input_capacity_provider_strategy"></a> [capacity\_provider\_strategy](#input\_capacity\_provider\_strategy) | Capacity provider strategies to use for the service EC2 Autoscaling group | `map(any)` | `null` | no |
 | <a name="input_cloudwatch_log_kms_key_id"></a> [cloudwatch\_log\_kms\_key\_id](#input\_cloudwatch\_log\_kms\_key\_id) | The ARN for the KMS encryption key. | `string` | `null` | no |
 | <a name="input_cloudwatch_log_retention_in_days"></a> [cloudwatch\_log\_retention\_in\_days](#input\_cloudwatch\_log\_retention\_in\_days) | Retention day for cloudwatch log group | `number` | `90` | no |
+| <a name="input_command"></a> [command](#input\_command) | Command to override | `list(string)` | `[]` | no |
 | <a name="input_custom_header_token"></a> [custom\_header\_token](#input\_custom\_header\_token) | [Required] Specify secret value for custom header | `string` | `""` | no |
+| <a name="input_deployment_circuit_breaker"></a> [deployment\_circuit\_breaker](#input\_deployment\_circuit\_breaker) | Configuration block for deployment circuit breaker | <pre>object({<br>    enable   = bool<br>    rollback = bool<br>  })</pre> | <pre>{<br>  "enable": true,<br>  "rollback": true<br>}</pre> | no |
+| <a name="input_efs_volumes"></a> [efs\_volumes](#input\_efs\_volumes) | Task EFS volume definitions as list of configuration objects. You cannot define both Docker volumes and EFS volumes on the same task definition. | `list(any)` | `[]` | no |
+| <a name="input_entry_point"></a> [entry\_point](#input\_entry\_point) | Entrypoint to override | `list(string)` | `[]` | no |
 | <a name="input_envvars"></a> [envvars](#input\_envvars) | List of [{name = "", value = ""}] pairs of environment variables | <pre>set(object({<br>    name  = string<br>    value = string<br>  }))</pre> | <pre>[<br>  {<br>    "name": "EXAMPLE_ENV",<br>    "value": "example"<br>  }<br>]</pre> | no |
 | <a name="input_exists_task_execution_role_arn"></a> [exists\_task\_execution\_role\_arn](#input\_exists\_task\_execution\_role\_arn) | The existing arn of task exec role | `string` | `""` | no |
 | <a name="input_exists_task_role_arn"></a> [exists\_task\_role\_arn](#input\_exists\_task\_role\_arn) | The existing arn of task role | `string` | `""` | no |
@@ -232,10 +154,12 @@ scaling_configuration = {
 | <a name="input_is_create_iam_role"></a> [is\_create\_iam\_role](#input\_is\_create\_iam\_role) | Create the built in IAM role for task role and task exec role | `bool` | `true` | no |
 | <a name="input_is_enable_execute_command"></a> [is\_enable\_execute\_command](#input\_is\_enable\_execute\_command) | Specifies whether to enable Amazon ECS Exec for the tasks within the service. | `bool` | `false` | no |
 | <a name="input_json_secrets"></a> [json\_secrets](#input\_json\_secrets) | Map of secret name(as reflected in Secrets Manager) and secret JSON string associated | `map(string)` | `{}` | no |
+| <a name="input_ordered_placement_strategy"></a> [ordered\_placement\_strategy](#input\_ordered\_placement\_strategy) | n/a | <pre>set(object({<br>    type  = string<br>    field = string<br>  }))</pre> | <pre>[<br>  {<br>    "field": "attribute:ecs.availability-zone",<br>    "type": "spread"<br>  }<br>]</pre> | no |
 | <a name="input_scaling_configuration"></a> [scaling\_configuration](#input\_scaling\_configuration) | configuration of scaling configuration support both target tracking and step scaling policies<br>  https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PredefinedMetricSpecification.html<br>  https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cloudwatch-metrics.html | `any` | `{}` | no |
 | <a name="input_secrets"></a> [secrets](#input\_secrets) | Map of secret name(as reflected in Secrets Manager) and secret JSON string associated | `map(string)` | `{}` | no |
 | <a name="input_service_count"></a> [service\_count](#input\_service\_count) | Number of containers to deploy | `number` | `1` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Custom tags which can be passed on to the AWS resources. They should be key value pairs having distinct keys | `map(any)` | `{}` | no |
+| <a name="input_unix_max_connection"></a> [unix\_max\_connection](#input\_unix\_max\_connection) | Number of net.core.somaxconn | `number` | `4096` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC id where security group is created | `string` | `""` | no |
 
 ## Outputs
