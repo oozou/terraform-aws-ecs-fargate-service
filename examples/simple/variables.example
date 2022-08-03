@@ -1,0 +1,36 @@
+generics_info = {
+  region      = "ap-southeast-1",
+  prefix      = "customer",
+  environment = "dev",
+  name        = "pass",
+  custom_tags = {
+    "Workspace" = "901-customer-sandbox-terraform"
+  }
+}
+
+vpc_id = "vpc-xxxxxxx"
+subnet_ids = ["subnet-xxxxxxxxx","subnet-xxxxxx"]
+
+service_info = {
+  "api" = {
+    is_attach_service_with_lb = true,
+    service_alb_host_header   = null,
+    alb_paths                 = ["/*"],
+    alb_priority              = "100",
+    health_check = {
+      interval            = 20,
+      path                = "/",
+      timeout             = 10,
+      healthy_threshold   = 3,
+      unhealthy_threshold = 3,
+      matcher             = "200,201,204"
+    },
+    service_info = {
+      containers_num = 2,
+      cpu_allocation = 256,
+      mem_allocation = 512,
+      port           = 80,
+      image          = "nginx"
+    }
+  }
+}
