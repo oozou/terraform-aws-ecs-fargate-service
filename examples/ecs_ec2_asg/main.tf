@@ -32,16 +32,11 @@ module "service_api" {
   # ECS service
   ecs_cluster_name            = module.fargate_cluster.ecs_cluster_name
   service_discovery_namespace = module.fargate_cluster.service_discovery_namespace
-  is_enable_execute_command   = false # must be false because we enabled ssm at ec2 instance instead
+  is_enable_execute_command   = true
   application_subnet_ids      = var.subnet_ids
   security_groups = [
     module.fargate_cluster.ecs_task_security_group_id
   ]
-
-  # config capacity provider strategy to use Auto scaling group EC2 lunch type
-  capacity_provider_strategy = var.capacity_provider_strategy
-  ordered_placement_strategy = var.ordered_placement_strategy
-  unix_max_connection        = var.unix_max_connection
 
   tags = var.generics_info.custom_tags
 }

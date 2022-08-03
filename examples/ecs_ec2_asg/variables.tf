@@ -48,30 +48,3 @@ variable "service_info" {
     })
   }))
 }
-
-/* -------------------------------------------------------------------------- */
-/*                      capacity provider strategy                            */
-/* -------------------------------------------------------------------------- */
-variable "capacity_provider_strategy" {
-  description = "Capacity provider strategies to use for the service EC2 Autoscaling group"
-  type        = map(any)
-  default     = null
-}
-
-variable "ordered_placement_strategy" {
-  description = ""
-  type = set(object({
-    type  = string
-    field = string
-  }))
-  default = [{
-    type  = "spread"
-    field = "attribute:ecs.availability-zone"
-  }]
-}
-
-variable "unix_max_connection" {
-  description = "Number of net.core.somaxconn"
-  type        = number
-  default     = 4096
-}

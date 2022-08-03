@@ -34,22 +34,3 @@ service_info = {
     }
   }
 }
-
-capacity_provider_strategy = {
-  capacity_provider = "prefix-devops-pass-cp"
-  weight            = 100
-  base              = 0
-}
-
-ordered_placement_strategy = [
-  {
-    type  = "spread"
-    field = "attribute:ecs.availability-zone"
-  },
-  {
-    type  = "spread"
-    field = "instanceId"
-  }
-]
-
-unix_max_connection = 8192
