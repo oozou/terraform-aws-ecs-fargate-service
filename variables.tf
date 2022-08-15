@@ -157,15 +157,18 @@ variable "json_secrets" {
 }
 
 variable "envvars" {
-  description = "List of [{name = \"\", value = \"\"}] pairs of environment variables"
+  description = <<-EOT
+    List of [{name = \"\", value = \"\"}] pairs of environment variables
+      envvars = [{
+        name  = "EXAMPLE_ENV"
+        value = "example"
+      }]
+    EOT
   type = set(object({
     name  = string
     value = string
   }))
-  default = [{
-    name  = "EXAMPLE_ENV"
-    value = "example"
-  }]
+  default = []
 }
 
 /* -------------------------------------------------------------------------- */
