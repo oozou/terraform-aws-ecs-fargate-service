@@ -1,3 +1,63 @@
+### Target Tracking Policies
+
+```terraform
+scaling_configuration = {
+  policy_type = "TargetTrackingScaling"
+  capacity = {
+    min_capacity = 1
+    max_capacity = 10
+  }
+  scaling_behaviors = {
+    cpu_average = {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+      target_value           = 60
+      scale_in_cooldown      = 180
+      scale_out_cooldown     = 60
+    }
+    memory_average = {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+      target_value           = 60
+      scale_in_cooldown      = 180
+      scale_out_cooldown     = 60
+    }
+  }
+}
+```
+
+### Simple Policies
+
+```terraform
+scaling_configuration = {
+  policy_type = "StepScaling"
+  capacity = {
+    min_capacity = 1
+    max_capacity = 10
+  }
+  scaling_behaviors = {
+    cpu_up_average = {
+      metric_name         = "CPUUtilization"
+      statistic           = "Average"
+      comparison_operator = ">="
+      threshold           = "65"
+      period              = "60"
+      evaluation_periods  = "1"
+      cooldown            = 60
+      scaling_adjustment  = 1
+    }
+    cpu_down_average = {
+      metric_name         = "CPUUtilization"
+      statistic           = "Average"
+      comparison_operator = "<"
+      threshold           = "50"
+      period              = "60"
+      evaluation_periods  = "10"
+      cooldown            = 180
+      scaling_adjustment  = -1
+    }
+  }
+}
+```
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
