@@ -250,13 +250,38 @@ EOF
 resource "aws_ecs_task_definition" "this" {
   family                   = local.service_name
   network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
+  requires_compatibilities = var.capacity_provider_strategy == null ? ["FARGATE"] : ["EC2"]
   cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
   memory                   = local.is_apm_enabled ? var.service_info.mem_allocation + var.apm_config.memory : var.service_info.mem_allocation
   execution_role_arn       = local.task_execution_role_arn
   task_role_arn            = local.task_role_arn
 
-  container_definitions = local.container_definitions
+  container_definitions = var.capacity_provider_strategy == null ? local.container_definitions : local.container_definitions_ec2
+
+  dynamic "volume" {
+    for_each = local.volumes
+    content {
+      host_path = lookup(volume.value, "host_path", null)
+      name      = volume.value.name
+
+      dynamic "efs_volume_configuration" {
+        for_each = lookup(volume.value, "efs_volume_configuration", [])
+        content {
+          file_system_id          = lookup(efs_volume_configuration.value, "file_system_id", null)
+          root_directory          = lookup(efs_volume_configuration.value, "root_directory", null)
+          transit_encryption      = lookup(efs_volume_configuration.value, "transit_encryption", null)
+          transit_encryption_port = lookup(efs_volume_configuration.value, "transit_encryption_port", null)
+          dynamic "authorization_config" {
+            for_each = lookup(efs_volume_configuration.value, "authorization_config", [])
+            content {
+              access_point_id = lookup(authorization_config.value, "access_point_id", null)
+              iam             = lookup(authorization_config.value, "iam", null)
+            }
+          }
+        }
+      }
+    }
+  }
 
   tags = merge(local.tags, { "Name" = local.service_name })
 }
@@ -284,21 +309,44 @@ resource "aws_service_discovery_service" "service" {
 }
 
 resource "aws_ecs_service" "this" {
-  name                   = format("%s", local.service_name)
-  cluster                = local.ecs_cluster_arn
-  task_definition        = aws_ecs_task_definition.this.arn
-  desired_count          = var.service_count
-  enable_execute_command = var.is_enable_execute_command
-  launch_type            = "FARGATE"
+  name                    = format("%s", local.service_name)
+  cluster                 = local.ecs_cluster_arn
+  task_definition         = aws_ecs_task_definition.this.arn
+  desired_count           = var.service_count
+  enable_execute_command  = var.is_enable_execute_command
+  enable_ecs_managed_tags = true
+  launch_type             = var.capacity_provider_strategy == null ? "FARGATE" : null
 
   network_configuration {
     security_groups = var.security_groups
     subnets         = var.application_subnet_ids
   }
 
+  dynamic "ordered_placement_strategy" {
+    for_each = var.capacity_provider_strategy == null ? [] : var.ordered_placement_strategy
+    content {
+      type  = ordered_placement_strategy.value.type
+      field = ordered_placement_strategy.value.field
+    }
+  }
+
   service_registries {
     registry_arn   = aws_service_discovery_service.service.arn
     container_name = local.service_name
+  }
+
+  dynamic "capacity_provider_strategy" {
+    for_each = var.capacity_provider_strategy == null ? [] : [true]
+    content {
+      base              = var.capacity_provider_strategy.base
+      capacity_provider = var.capacity_provider_strategy.capacity_provider
+      weight            = var.capacity_provider_strategy.weight
+    }
+  }
+
+  deployment_circuit_breaker {
+    enable   = var.deployment_circuit_breaker.enable
+    rollback = var.deployment_circuit_breaker.rollback
   }
 
   dynamic "load_balancer" {

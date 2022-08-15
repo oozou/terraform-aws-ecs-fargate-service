@@ -157,15 +157,18 @@ variable "json_secrets" {
 }
 
 variable "envvars" {
-  description = "List of [{name = \"\", value = \"\"}] pairs of environment variables"
+  description = <<-EOT
+    List of [{name = \"\", value = \"\"}] pairs of environment variables
+      envvars = [{
+        name  = "EXAMPLE_ENV"
+        value = "example"
+      }]
+    EOT
   type = set(object({
     name  = string
     value = string
   }))
-  default = [{
-    name  = "EXAMPLE_ENV"
-    value = "example"
-  }]
+  default = []
 }
 
 /* -------------------------------------------------------------------------- */
@@ -247,4 +250,71 @@ variable "scaling_configuration" {
   EOF
   type        = any
   default     = {}
+}
+
+/* -------------------------------------------------------------------------- */
+/*                      capacity provider strategy                            */
+/* -------------------------------------------------------------------------- */
+variable "capacity_provider_strategy" {
+  description = "Capacity provider strategies to use for the service EC2 Autoscaling group"
+  type        = map(any)
+  default     = null
+}
+
+variable "ordered_placement_strategy" {
+  description = ""
+  type = set(object({
+    type  = string
+    field = string
+  }))
+  default = [{
+    type  = "spread"
+    field = "attribute:ecs.availability-zone"
+  }]
+}
+
+variable "unix_max_connection" {
+  description = "Number of net.core.somaxconn"
+  type        = number
+  default     = 4096
+}
+
+/* -------------------------------------------------------------------------- */
+/*                           Entrypoint and command                           */
+/* -------------------------------------------------------------------------- */
+variable "entry_point" {
+  description = "Entrypoint to override"
+  type        = list(string)
+  default     = []
+}
+
+variable "command" {
+  description = "Command to override"
+  type        = list(string)
+  default     = []
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   volume                                   */
+/* -------------------------------------------------------------------------- */
+variable "efs_volumes" {
+  description = "Task EFS volume definitions as list of configuration objects. You cannot define both Docker volumes and EFS volumes on the same task definition."
+  type = list(any)
+
+  default     = []
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   Rollback                                 */
+/* -------------------------------------------------------------------------- */
+variable "deployment_circuit_breaker" {
+  description = "Configuration block for deployment circuit breaker"
+  type = object({
+    enable   = bool
+    rollback = bool
+  })
+  default = {
+    enable   = true
+    rollback = true
+  }
 }
