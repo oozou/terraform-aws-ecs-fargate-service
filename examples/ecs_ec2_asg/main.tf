@@ -4,9 +4,9 @@ module "service_api" {
   source = "../.."
 
   # Generics
-  prefix      = var.generics_info.prefix
-  environment = var.generics_info.environment
-  name        = format("%s-service-api", var.generics_info.name)
+  prefix      = var.prefix
+  environment = var.environment
+  name        = format("%s-service-api", var.name)
 
   # IAM Role
   is_create_iam_role = true
@@ -38,5 +38,5 @@ module "service_api" {
     module.fargate_cluster.ecs_task_security_group_id
   ]
 
-  tags = var.generics_info.custom_tags
+  tags = var.custom_tags
 }
