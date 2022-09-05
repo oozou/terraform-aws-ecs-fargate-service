@@ -179,7 +179,6 @@ variable "service_info" {
   type = object({
     cpu_allocation = number
     mem_allocation = number
-    containers_num = number
     port           = number
     image          = string
   })
@@ -262,7 +261,7 @@ variable "capacity_provider_strategy" {
 }
 
 variable "ordered_placement_strategy" {
-  description = ""
+  description = "Service level strategy rules that are taken into consideration during task placement"
   type = set(object({
     type  = string
     field = string
@@ -299,8 +298,7 @@ variable "command" {
 /* -------------------------------------------------------------------------- */
 variable "efs_volumes" {
   description = "Task EFS volume definitions as list of configuration objects. You cannot define both Docker volumes and EFS volumes on the same task definition."
-  type = list(any)
-
+  type        = list(any)
   default     = []
 }
 
