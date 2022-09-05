@@ -1,11 +1,17 @@
 # Change Log
 
 ## [v1.1.4] - 2022-09-05
-### Added
 
 ### Changed
 
+- Update `.pre-commit-config.yaml` to support `--args=--only=terraform_unused_declarations`
+- Update `CHANGELOG.md` to all previous version
+- Fix pre-commit issue
+
 ### Removed
+
+- Remove `containers_num` attribute from variable `var.service_info`
+- Add description for variables `var.ordered_placement_strategy`
 
 ## [v1.1.3] - 2022-08-03
 
