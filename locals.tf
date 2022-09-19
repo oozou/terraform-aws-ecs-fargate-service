@@ -7,7 +7,8 @@ data "aws_region" "current" {
 /*                                  Generics                                  */
 /* -------------------------------------------------------------------------- */
 locals {
-  service_name = format("%s-%s-%s", var.prefix, var.environment, var.name)
+  service_name_tmp = format("%s-%s-%s", var.prefix, var.environment, var.name)
+  service_name     = substr("${local.service_name_tmp}", 0, min(29, length(local.service_name_tmp)))
 
   # Task Role
   task_role_arn                     = var.is_create_iam_role ? aws_iam_role.task_role[0].arn : var.exists_task_role_arn
