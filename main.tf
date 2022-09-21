@@ -158,7 +158,8 @@ resource "aws_lb_listener_rule" "this" {
 /*                                   Secret                                   */
 /* -------------------------------------------------------------------------- */
 module "secret_kms_key" {
-  source = "git@github.com:oozou/terraform-aws-kms-key.git?ref=v1.0.0"
+  source  = "oozou/kms-key/aws"
+  version = "1.0.0"
 
   name                 = format("%s-service-secrets", local.service_name)
   prefix               = var.prefix
