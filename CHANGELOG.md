@@ -1,5 +1,15 @@
 # Change Log
 
+## [v1.1.6] - 2022-09-22
+
+### Added
+
+- Add variable `var.target_group_deregistration_delay` to support setting deregistration delay time
+
+### Changed
+
+- Update resource `aws_lb_target_group.this` to support setting deregistration delay time with attribute `deregistration_delay`
+
 ## [v1.1.5] - 2022-09-21
 
 ### Changed

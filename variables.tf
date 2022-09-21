@@ -91,6 +91,12 @@ variable "is_attach_service_with_lb" {
   type        = bool
 }
 
+variable "target_group_deregistration_delay" {
+  description = "(Optional) Amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused. The range is 0-3600 seconds. The default value is 300 seconds."
+  type        = number
+  default     = 300
+}
+
 variable "vpc_id" {
   description = "VPC id where security group is created"
   type        = string
