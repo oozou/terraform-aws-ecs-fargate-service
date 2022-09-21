@@ -1,5 +1,12 @@
 # Change Log
 
+## [v1.1.5] - 2022-09-21
+
+### Changed
+
+- Change `KMS` to use from public module
+- CHange ALB to auto strip name when name is too longer than 32 chars
+
 ## [v1.1.4] - 2022-09-05
 
 ### Changed
