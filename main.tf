@@ -98,11 +98,12 @@ resource "aws_cloudwatch_log_group" "this" {
 resource "aws_lb_target_group" "this" {
   count = var.is_attach_service_with_lb ? 1 : 0
 
-  name        = format("%s-tg", local.service_name)
-  port        = var.service_info.port
-  protocol    = var.service_info.port == 443 ? "HTTPS" : "HTTP"
-  vpc_id      = var.vpc_id
-  target_type = "ip"
+  name                 = format("%s-tg", local.service_name)
+  port                 = var.service_info.port
+  protocol             = var.service_info.port == 443 ? "HTTPS" : "HTTP"
+  vpc_id               = var.vpc_id
+  target_type          = "ip"
+  deregistration_delay = var.target_group_deregistration_delay
 
   health_check {
     interval            = lookup(var.health_check, "interval", null)
