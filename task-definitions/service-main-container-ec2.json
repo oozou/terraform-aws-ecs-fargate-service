@@ -2,6 +2,7 @@
   {
      "cpu":${cpu},
      "image":"${service_image}",
+     "mountPoints": ${mount_points},
      "memory":${memory},
      "name":"${service_name}",
      "networkMode":"awsvpc",
