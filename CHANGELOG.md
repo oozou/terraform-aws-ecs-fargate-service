@@ -8,7 +8,7 @@
 
 ### Changed
 
-- On varialbe `var.service_info` to support additional mount point
+- On variable `var.service_info` to support additional mount point
 
 ## [v1.1.6] - 2022-09-22
 
