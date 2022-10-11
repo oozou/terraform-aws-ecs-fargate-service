@@ -66,6 +66,14 @@ locals {
 /*                               Task Definition                              */
 /* -------------------------------------------------------------------------- */
 locals {
+  mount_points_application_scratch = var.is_application_scratch_volume_enabled ? [
+    {
+      "containerPath" : "/var/scratch",
+      "sourceVolume" : "application_scratch"
+    }
+  ] : []
+  mount_points = concat(local.mount_points_application_scratch, try(var.service_info.mount_points, []))
+
   # TODO make it better later
   container_definitions = local.is_apm_enabled ? templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", {
     cpu                     = var.service_info.cpu_allocation
@@ -84,6 +92,7 @@ locals {
     apm_service_port        = var.apm_config.service_port
     entry_point             = jsonencode(var.entry_point)
     command                 = jsonencode(var.command)
+    mount_points            = jsonencode(local.mount_points)
     }) : templatefile("${path.module}/task-definitions/service-main-container.json", {
     cpu                     = var.service_info.cpu_allocation
     service_image           = var.service_info.image
@@ -96,6 +105,7 @@ locals {
     secrets_task_definition = jsonencode(local.secrets_task_definition)
     entry_point             = jsonencode(var.entry_point)
     command                 = jsonencode(var.command)
+    mount_points            = jsonencode(local.mount_points)
   })
   container_definitions_ec2 = templatefile("${path.module}/task-definitions/service-main-container-ec2.json", {
     cpu                     = var.service_info.cpu_allocation
@@ -110,6 +120,7 @@ locals {
     entry_point             = jsonencode(var.entry_point)
     command                 = jsonencode(var.command)
     unix_max_connection     = tostring(var.unix_max_connection)
+    mount_points            = jsonencode(local.mount_points)
   })
 }
 

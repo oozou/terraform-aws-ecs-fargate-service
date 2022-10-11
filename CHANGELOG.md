@@ -1,5 +1,15 @@
 # Change Log
 
+## [v1.1.7] - 2022-10-10
+
+### Added
+
+- Add variable `var.is_application_scratch_volume_enabled` to support enabled temporary storage on ecs
+
+### Changed
+
+- On variable `var.service_info` to support additional mount point
+
 ## [v1.1.6] - 2022-09-22
 
 ### Added

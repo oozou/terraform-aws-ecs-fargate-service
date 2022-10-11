@@ -285,6 +285,13 @@ resource "aws_ecs_task_definition" "this" {
     }
   }
 
+  dynamic "volume" {
+    for_each = var.is_application_scratch_volume_enabled ? [true] : []
+    content {
+      name = "application_scratch"
+    }
+  }
+
   tags = merge(local.tags, { "Name" = local.service_name })
 }
 

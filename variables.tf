@@ -187,6 +187,7 @@ variable "service_info" {
     mem_allocation = number
     port           = number
     image          = string
+    mount_points   = list(any)
   })
 }
 
@@ -209,6 +210,13 @@ variable "apm_config" {
     memory       = 512
   }
 }
+
+variable "is_application_scratch_volume_enabled" {
+  description = "To enabled the temporary storage for the service"
+  type        = bool
+  default     = false
+}
+
 /* -------------------------------------------------------------------------- */
 /*                               Fargate Service                              */
 /* -------------------------------------------------------------------------- */

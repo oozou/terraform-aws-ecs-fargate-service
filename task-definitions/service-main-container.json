@@ -2,6 +2,7 @@
   {
      "cpu":${cpu},
      "image":"${service_image}",
+     "mountPoints": ${mount_points},
      "memory":${memory},
      "name":"${service_name}",
      "networkMode":"awsvpc",
@@ -22,7 +23,7 @@
      ],
      "environment" : ${envvars},
      "secrets" : ${secrets_task_definition},
-     "entryPoint": ${entry_point},
+     "entryPoint": ${entry_point},     
      "command": ${command}
   }
 ]
