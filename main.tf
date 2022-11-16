@@ -157,9 +157,12 @@ resource "aws_lb_listener_rule" "this" {
 /*                                   Secret                                   */
 /* -------------------------------------------------------------------------- */
 module "secret_kms_key" {
-  source = "git@github.com:oozou/terraform-aws-kms-key.git?ref=v0.0.1"
+  source = "git@github.com:oozou/terraform-aws-kms-key.git?ref=v1.0.0"
 
-  alias_name           = format("%s-service-secrets", local.service_name)
+  prefix      = var.prefix
+  environment = var.environment
+  name        = var.name
+
   append_random_suffix = true
   key_type             = "service"
   description          = format("Secure Secrets Manager's service secrets for service %s", local.service_name)
@@ -169,7 +172,7 @@ module "secret_kms_key" {
     caller_account_ids = tolist([data.aws_caller_identity.current.account_id])
   }
 
-  custom_tags = merge(local.tags, { "Name" : format("%s-service-secrets", local.service_name) })
+  tags = merge(local.tags, { "Name" : format("%s-service-secrets", local.service_name) })
 }
 
 # Append random string to SM Secret names because once we tear down the infra, the secret does not actually
@@ -398,7 +401,8 @@ resource "aws_appautoscaling_policy" "step_scaling_policies" {
 }
 
 module "step_alarm" {
-  source = "../terraform-aws-cloudwatch/modules/cloudwatch-alarm"
+  source  = "oozou/cloudwatch-alarm/aws"
+  version = "1.0.0"
 
   for_each = try(var.scaling_configuration.policy_type, null) == "StepScaling" ? var.scaling_configuration.scaling_behaviors : {}
 
