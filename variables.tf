@@ -70,6 +70,18 @@ variable "is_create_cloudwatch_log_group" {
   default     = true
 }
 
+variable "cloudwatch_log_retention_in_days" {
+  description = "Retention day for cloudwatch log group"
+  type        = number
+  default     = 90
+}
+
+variable "cloudwatch_log_kms_key_id" {
+  description = "The ARN for the KMS encryption key."
+  type        = string
+  default     = null
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                LoadBalancer                                */
 /* -------------------------------------------------------------------------- */
@@ -77,6 +89,12 @@ variable "is_create_cloudwatch_log_group" {
 variable "is_attach_service_with_lb" {
   description = "Attach the container to the public ALB? (true/false)"
   type        = bool
+}
+
+variable "target_group_deregistration_delay" {
+  description = "(Optional) Amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused. The range is 0-3600 seconds. The default value is 300 seconds."
+  type        = number
+  default     = 300
 }
 
 variable "vpc_id" {
@@ -145,15 +163,18 @@ variable "json_secrets" {
 }
 
 variable "envvars" {
-  description = "List of [{name = \"\", value = \"\"}] pairs of environment variables"
+  description = <<-EOT
+    List of [{name = \"\", value = \"\"}] pairs of environment variables
+      envvars = [{
+        name  = "EXAMPLE_ENV"
+        value = "example"
+      }]
+    EOT
   type = set(object({
     name  = string
     value = string
   }))
-  default = [{
-    name  = "EXAMPLE_ENV"
-    value = "example"
-  }]
+  default = []
 }
 
 /* -------------------------------------------------------------------------- */
@@ -164,9 +185,9 @@ variable "service_info" {
   type = object({
     cpu_allocation = number
     mem_allocation = number
-    containers_num = number
     port           = number
     image          = string
+    mount_points   = list(any)
   })
 }
 
@@ -189,6 +210,13 @@ variable "apm_config" {
     memory       = 512
   }
 }
+
+variable "is_application_scratch_volume_enabled" {
+  description = "To enabled the temporary storage for the service"
+  type        = bool
+  default     = false
+}
+
 /* -------------------------------------------------------------------------- */
 /*                               Fargate Service                              */
 /* -------------------------------------------------------------------------- */
@@ -235,4 +263,70 @@ variable "scaling_configuration" {
   EOF
   type        = any
   default     = {}
+}
+
+/* -------------------------------------------------------------------------- */
+/*                      capacity provider strategy                            */
+/* -------------------------------------------------------------------------- */
+variable "capacity_provider_strategy" {
+  description = "Capacity provider strategies to use for the service EC2 Autoscaling group"
+  type        = map(any)
+  default     = null
+}
+
+variable "ordered_placement_strategy" {
+  description = "Service level strategy rules that are taken into consideration during task placement"
+  type = set(object({
+    type  = string
+    field = string
+  }))
+  default = [{
+    type  = "spread"
+    field = "attribute:ecs.availability-zone"
+  }]
+}
+
+variable "unix_max_connection" {
+  description = "Number of net.core.somaxconn"
+  type        = number
+  default     = 4096
+}
+
+/* -------------------------------------------------------------------------- */
+/*                           Entrypoint and command                           */
+/* -------------------------------------------------------------------------- */
+variable "entry_point" {
+  description = "Entrypoint to override"
+  type        = list(string)
+  default     = []
+}
+
+variable "command" {
+  description = "Command to override"
+  type        = list(string)
+  default     = []
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   volume                                   */
+/* -------------------------------------------------------------------------- */
+variable "efs_volumes" {
+  description = "Task EFS volume definitions as list of configuration objects. You cannot define both Docker volumes and EFS volumes on the same task definition."
+  type        = list(any)
+  default     = []
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   Rollback                                 */
+/* -------------------------------------------------------------------------- */
+variable "deployment_circuit_breaker" {
+  description = "Configuration block for deployment circuit breaker"
+  type = object({
+    enable   = bool
+    rollback = bool
+  })
+  default = {
+    enable   = true
+    rollback = true
+  }
 }
