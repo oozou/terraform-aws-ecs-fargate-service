@@ -1,5 +1,17 @@
 # Change Log
 
+## [v1.1.8] - 2022-11-17
+
+### Changed
+
+- Update `.pre-commit-config.yaml`
+- Migrate resource `aws_appautoscaling_policy.step_scaling_policies.step_adjustment` to dynamic `step_adjustment` block
+- Update resource `aws_cloudwatch_metric_alarm.step_alarm` to be module `step_alarm` (v1.0.0)
+
+### Removed
+
+- Remove `local.ecs_default_task_role_policy_arns`
+
 ## [v1.1.7] - 2022-10-10
 
 ### Added
