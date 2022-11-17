@@ -11,11 +11,10 @@ locals {
   service_name     = substr("${local.service_name_tmp}", 0, min(29, length(local.service_name_tmp)))
 
   # Task Role
-  task_role_arn                     = var.is_create_iam_role ? aws_iam_role.task_role[0].arn : var.exists_task_role_arn
-  task_role_name                    = try(split("/", local.task_role_arn)[1], "")
-  task_role_id                      = local.task_role_name
-  ecs_default_task_role_policy_arns = ["arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"]
-  ecs_task_role_policy_arns         = toset(concat(var.additional_ecs_task_role_policy_arns, local.ecs_default_task_role_policy_arns))
+  task_role_arn             = var.is_create_iam_role ? aws_iam_role.task_role[0].arn : var.exists_task_role_arn
+  task_role_name            = try(split("/", local.task_role_arn)[1], "")
+  task_role_id              = local.task_role_name
+  ecs_task_role_policy_arns = toset(var.additional_ecs_task_role_policy_arns)
 
   # Task Exec Role
   task_execution_role_arn                     = var.is_create_iam_role ? aws_iam_role.task_execution_role[0].arn : var.exists_task_execution_role_arn

@@ -432,17 +432,53 @@ resource "aws_appautoscaling_policy" "step_scaling_policies" {
     adjustment_type         = "ChangeInCapacity"
     cooldown                = lookup(each.value, "cooldown", 60)
     metric_aggregation_type = lookup(each.value, "statistic", "Average")
-    step_adjustment {
-      metric_interval_lower_bound = 0
-      scaling_adjustment          = lookup(each.value, "scaling_adjustment", null)
+
+    dynamic "step_adjustment" {
+      for_each = each.value["scaling_adjustment"] > 0 ? [true] : []
+      iterator = _null
+
+      content {
+        metric_interval_lower_bound = "0"
+        metric_interval_upper_bound = ""
+        scaling_adjustment          = lookup(each.value, "scaling_adjustment", null)
+      }
+    }
+
+    dynamic "step_adjustment" {
+      for_each = each.value["scaling_adjustment"] < 0 ? [true] : []
+      iterator = _null
+
+      content {
+        metric_interval_lower_bound = ""
+        metric_interval_upper_bound = "0"
+        scaling_adjustment          = lookup(each.value, "scaling_adjustment", null)
+      }
     }
   }
 }
 
-resource "aws_cloudwatch_metric_alarm" "step_alarm" {
+module "step_alarm" {
+  source  = "oozou/cloudwatch-alarm/aws"
+  version = "1.0.0"
+
   for_each = try(var.scaling_configuration.policy_type, null) == "StepScaling" ? var.scaling_configuration.scaling_behaviors : {}
 
-  alarm_name          = format("%s-%s-alarm", local.service_name, each.key)
+  depends_on = [aws_appautoscaling_target.this[0]]
+
+  prefix      = var.prefix
+  environment = var.environment
+  name        = format("%s-%s-alarm", local.service_name, each.key)
+
+  alarm_description = format(
+    "%s's %s %s %s in period %ss with %s datapoint",
+    lookup(each.value, "metric_name", null),
+    lookup(each.value, "statistic", null),
+    lookup(each.value, "comparison_operator", null),
+    lookup(each.value, "threshold", null),
+    lookup(each.value, "period", null),
+    lookup(each.value, "evaluation_periods", null)
+  )
+
   comparison_operator = local.comparison_operators[lookup(each.value, "comparison_operator", null)]
   evaluation_periods  = lookup(each.value, "evaluation_periods", null)
   metric_name         = lookup(each.value, "metric_name", null)
@@ -457,11 +493,7 @@ resource "aws_cloudwatch_metric_alarm" "step_alarm" {
   }
 
   alarm_actions = [aws_appautoscaling_policy.step_scaling_policies[each.key].arn]
+  # TODO set this to alrm to resource
 
-  tags = merge(local.tags, { "Name" = format("%s-%s-alarm", local.service_name, each.key) })
+  tags = var.tags
 }
-
-# https://github.com/cn-terraform/terraform-aws-ecs-service-autoscaling/blob/main/main.tf
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_alarm
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_target
