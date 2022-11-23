@@ -26,10 +26,10 @@ resource "aws_iam_role" "task_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "task_role" {
-  for_each = var.is_create_iam_role ? local.ecs_task_role_policy_arns : []
+  count = var.is_create_iam_role ? length(var.additional_ecs_task_role_policy_arns) : 0
 
   role       = local.task_role_name
-  policy_arn = each.value
+  policy_arn = var.additional_ecs_task_role_policy_arns[count.index]
 }
 /* -------------------------------- Validator ------------------------------- */
 data "aws_iam_role" "get_ecs_task_role" {
@@ -98,7 +98,8 @@ resource "aws_cloudwatch_log_group" "this" {
 resource "aws_lb_target_group" "this" {
   count = var.is_attach_service_with_lb ? 1 : 0
 
-  name                 = format("%s-tg", local.service_name)
+  name = format("%s-tg", substr("${local.service_name}", 0, min(29, length(local.service_name))))
+
   port                 = var.service_info.port
   protocol             = var.service_info.port == 443 ? "HTTPS" : "HTTP"
   vpc_id               = var.vpc_id

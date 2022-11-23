@@ -1,5 +1,17 @@
 # Change Log
 
+## [v1.1.9] - 2022-11-23
+
+### Changed
+
+- Update meta-argument to count on resource `aws_iam_role_policy_attachment.task_role`
+- Update resource `aws_lb_target_group.this` to auto substr if service name is longer than 29
+
+### Removed
+
+- Remove local `service_name_tmp`
+- Remove local `ecs_task_role_policy_arns` (change to count)
+
 ## [v1.1.8] - 2022-11-17
 
 ### Changed
