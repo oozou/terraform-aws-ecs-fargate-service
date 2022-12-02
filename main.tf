@@ -399,7 +399,7 @@ resource "aws_appautoscaling_policy" "target_tracking_scaling_policies" {
 
   depends_on = [aws_appautoscaling_target.this[0]]
 
-  name               = format("%s-%s-scaling-policy", local.service_name, each.key)
+  name               = format("%s-%s-scaling-policy", local.service_name, replace(each.key, "_", "-"))
   resource_id        = aws_appautoscaling_target.this[0].resource_id
   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
@@ -422,7 +422,7 @@ resource "aws_appautoscaling_policy" "step_scaling_policies" {
 
   depends_on = [aws_appautoscaling_target.this[0]]
 
-  name               = format("%s-%s-scaling-policy", local.service_name, each.key)
+  name               = format("%s-%s-scaling-policy", local.service_name, replace(each.key, "_", "-"))
   resource_id        = aws_appautoscaling_target.this[0].resource_id
   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
