@@ -493,7 +493,7 @@ module "step_alarm" {
     ServiceName = local.service_name
   }
 
-  alarm_actions = concat([aws_appautoscaling_policy.step_scaling_policies[each.key].arn], lookup(each.value, "alarm", lookup(var.scaling_configuration, "default_alarm_arn", [])))
+  alarm_actions = concat([aws_appautoscaling_policy.step_scaling_policies[each.key].arn], lookup(each.value, "alarm_actions", lookup(var.scaling_configuration, "default_alarm_actions", [])))
 
   tags = var.tags
 }
