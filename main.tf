@@ -468,7 +468,7 @@ module "step_alarm" {
 
   prefix      = var.prefix
   environment = var.environment
-  name        = format("%s-%s", local.service_name, replace(each.key, "_", "-"))
+  name        = replace(each.key, "_", "-")
 
   alarm_description = format(
     "%s's %s %s %s in period %ss with %s datapoint",
