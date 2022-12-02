@@ -485,7 +485,7 @@ module "step_alarm" {
   metric_name         = lookup(each.value, "metric_name", null)
   namespace           = "AWS/ECS"
   period              = lookup(each.value, "period", null)
-  statistic           = lookup(each.value, "statistic", "Average")
+  statistic           = lookup(each.value, "statistic", null)
   threshold           = lookup(each.value, "threshold", null)
 
   dimensions = {
@@ -493,8 +493,7 @@ module "step_alarm" {
     ServiceName = local.service_name
   }
 
-  alarm_actions = [aws_appautoscaling_policy.step_scaling_policies[each.key].arn]
-  # TODO set this to alrm to resource
+  alarm_actions = concat([aws_appautoscaling_policy.step_scaling_policies[each.key].arn], lookup(each.value, "alarm", lookup(var.scaling_configuration, "default_alarm_arn", [])))
 
   tags = var.tags
 }
