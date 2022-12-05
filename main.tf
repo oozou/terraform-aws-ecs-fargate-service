@@ -171,8 +171,8 @@ module "secret_kms_key" {
   description          = format("Secure Secrets Manager's service secrets for service %s", local.service_name)
 
   service_key_info = {
-    aws_service_names  = tolist([format("secretsmanager.%s.amazonaws.com", data.aws_region.current.name)])
-    caller_account_ids = tolist([data.aws_caller_identity.current.account_id])
+    aws_service_names  = tolist([format("secretsmanager.%s.amazonaws.com", data.aws_region.this.name)])
+    caller_account_ids = tolist([data.aws_caller_identity.this.account_id])
   }
 
   tags = merge(local.tags, { "Name" : format("%s-service-secrets", local.service_name) })

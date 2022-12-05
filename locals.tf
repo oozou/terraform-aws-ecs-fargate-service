@@ -1,8 +1,6 @@
-data "aws_caller_identity" "current" {
-}
+data "aws_caller_identity" "this" {}
+data "aws_region" "this" {}
 
-data "aws_region" "current" {
-}
 /* -------------------------------------------------------------------------- */
 /*                                  Generics                                  */
 /* -------------------------------------------------------------------------- */
@@ -32,7 +30,7 @@ locals {
   apm_name       = "xray-apm-sidecar"
 
   # ECS Service
-  ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:cluster/${var.ecs_cluster_name}"
+  ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.this.name}:${data.aws_caller_identity.this.account_id}:cluster/${var.ecs_cluster_name}"
 
 
   tags = merge(
@@ -77,7 +75,7 @@ locals {
     service_image           = var.service_info.image
     memory                  = var.service_info.mem_allocation
     log_group_name          = local.log_group_name
-    region                  = data.aws_region.current.name
+    region                  = data.aws_region.this.name
     service_name            = local.service_name
     service_port            = var.service_info.port
     envvars                 = jsonencode(var.envvars)
@@ -95,7 +93,7 @@ locals {
     service_image           = var.service_info.image
     memory                  = var.service_info.mem_allocation
     log_group_name          = local.log_group_name
-    region                  = data.aws_region.current.name
+    region                  = data.aws_region.this.name
     service_name            = local.service_name
     service_port            = var.service_info.port
     envvars                 = jsonencode(var.envvars)
@@ -109,7 +107,7 @@ locals {
     service_image           = var.service_info.image
     memory                  = var.service_info.mem_allocation
     log_group_name          = local.log_group_name
-    region                  = data.aws_region.current.name
+    region                  = data.aws_region.this.name
     service_name            = local.service_name
     service_port            = var.service_info.port
     envvars                 = jsonencode(var.envvars)
