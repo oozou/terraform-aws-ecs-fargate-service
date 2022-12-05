@@ -31,12 +31,6 @@ resource "aws_iam_role_policy_attachment" "task_role" {
   role       = local.task_role_name
   policy_arn = var.additional_ecs_task_role_policy_arns[count.index]
 }
-/* -------------------------------- Validator ------------------------------- */
-data "aws_iam_role" "get_ecs_task_role" {
-  count = !var.is_create_iam_role ? 1 : 0
-
-  name = local.task_role_name
-}
 
 /* -------------------------------------------------------------------------- */
 /*                               Task Exec Role                               */
@@ -70,12 +64,6 @@ resource "aws_iam_role_policy_attachment" "task_execution_role" {
 
   role       = local.task_execution_role_name
   policy_arn = each.value
-}
-/* -------------------------------- Validator ------------------------------- */
-data "aws_iam_role" "get_ecs_task_execution_role" {
-  count = !var.is_create_iam_role ? 1 : 0
-
-  name = local.task_execution_role_name
 }
 
 /* -------------------------------------------------------------------------- */
