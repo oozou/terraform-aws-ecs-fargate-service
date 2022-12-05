@@ -5,7 +5,7 @@ data "aws_region" "this" {}
 /*                                  Generics                                  */
 /* -------------------------------------------------------------------------- */
 locals {
-  service_name = format("%s-%s-%s", var.prefix, var.environment, var.name)
+  name = format("%s-%s-%s", var.prefix, var.environment, var.name)
 
   # Task Role
   task_role_arn  = var.is_create_iam_role ? aws_iam_role.task_role[0].arn : var.exists_task_role_arn
@@ -20,7 +20,7 @@ locals {
   ecs_task_execution_role_policy_arns         = toset(concat(var.additional_ecs_task_execution_role_policy_arns, local.ecs_default_task_execution_role_policy_arns))
 
   # Logging
-  log_group_name = format("%s-service-log-group", local.service_name)
+  log_group_name = format("%s-service-log-group", local.name)
 
   # Volume
   volumes = concat(var.efs_volumes)
@@ -76,7 +76,7 @@ locals {
     memory                  = var.service_info.mem_allocation
     log_group_name          = local.log_group_name
     region                  = data.aws_region.this.name
-    service_name            = local.service_name
+    name                    = local.name
     service_port            = var.service_info.port
     envvars                 = jsonencode(var.envvars)
     secrets_task_definition = jsonencode(local.secrets_task_definition)
@@ -94,7 +94,7 @@ locals {
     memory                  = var.service_info.mem_allocation
     log_group_name          = local.log_group_name
     region                  = data.aws_region.this.name
-    service_name            = local.service_name
+    name                    = local.name
     service_port            = var.service_info.port
     envvars                 = jsonencode(var.envvars)
     secrets_task_definition = jsonencode(local.secrets_task_definition)
@@ -108,7 +108,7 @@ locals {
     memory                  = var.service_info.mem_allocation
     log_group_name          = local.log_group_name
     region                  = data.aws_region.this.name
-    service_name            = local.service_name
+    name                    = local.name
     service_port            = var.service_info.port
     envvars                 = jsonencode(var.envvars)
     secrets_task_definition = jsonencode(local.secrets_task_definition)
