@@ -5,7 +5,7 @@ data "aws_region" "this" {}
 /*                                  Generics                                  */
 /* -------------------------------------------------------------------------- */
 locals {
-  name = format("%s-%s-%s", var.prefix, var.environment, var.name)
+  name = var.name_override == "" ? format("%s-%s-%s", var.prefix, var.environment, var.name) : var.name_override
 
   # Task Role
   task_role_arn  = var.is_create_iam_role ? aws_iam_role.task_role[0].arn : var.exists_task_role_arn
@@ -55,6 +55,11 @@ locals {
   raise_alb_listener_arn_empty = var.is_attach_service_with_lb && length(var.alb_listener_arn) == 0 ? file("Variable `alb_listener_arn` is required when `is_attach_service_with_lb` is true") : "pass"
 
   raise_enable_exec_on_cp = var.is_enable_execute_command && var.capacity_provider_strategy != null ? file("Canot set `is_enable_execute_command` with `capacity_provider_strategy`. Please enabled SSM at EC2 instance profile instead") : "pass"
+
+  empty_prefix      = var.prefix == "" ? true : false
+  empty_environment = var.environment == "" ? true : false
+  empty_name        = var.name == "" ? true : false
+  raise_empty_name  = local.name == "" && (local.empty_prefix || local.empty_environment || local.empty_name) ? file("`var.name_override` or (`var.prefix`, `var.environment` and `var.name is required`) ") : null
 }
 
 /* -------------------------------------------------------------------------- */

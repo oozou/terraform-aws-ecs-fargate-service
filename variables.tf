@@ -1,19 +1,28 @@
 /* -------------------------------------------------------------------------- */
 /*                                   Generic                                  */
 /* -------------------------------------------------------------------------- */
-variable "prefix" {
-  description = "The prefix name of customer to be displayed in AWS console and resource"
+variable "name_override" {
+  description = "(Optional) Full name to override usage from format(\"%s-%s-%s-cf\", var.prefix, var.environment, var.name)"
   type        = string
+  default     = ""
+}
+
+variable "prefix" {
+  description = "(Optional) Prefix as a part of format(\"%s-%s-%s-cf\", var.prefix, var.environment, var.name); ex. oozou-xxx-xxx-cf"
+  type        = string
+  default     = ""
 }
 
 variable "environment" {
-  description = "Environment Variable used as a prefix"
+  description = "(Optional) Environment as a part of format(\"%s-%s-%s-cf\", var.prefix, var.environment, var.name); ex. xxx-prod-xxx-cf"
   type        = string
+  default     = ""
 }
 
 variable "name" {
-  description = "Name of the ECS cluster to create"
+  description = "(Optional) Name as a part of format(\"%s-%s-%s-cf\", var.prefix, var.environment, var.name); ex. xxx-xxx-cms-cf"
   type        = string
+  default     = ""
 }
 
 variable "tags" {
