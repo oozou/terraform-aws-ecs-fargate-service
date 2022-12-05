@@ -21,7 +21,7 @@
            "hostPort":${service_port}
         }
      ],
-     "environment" : ${envvars},
+     "environment" : ${environment_variables},
      "secrets" : ${secrets_task_definition},
      "entryPoint": ${entry_point},     
      "command": ${command}

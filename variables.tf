@@ -162,19 +162,10 @@ variable "json_secrets" {
   default     = {}
 }
 
-variable "envvars" {
-  description = <<-EOT
-    List of [{name = \"\", value = \"\"}] pairs of environment variables
-      envvars = [{
-        name  = "EXAMPLE_ENV"
-        value = "example"
-      }]
-    EOT
-  type = set(object({
-    name  = string
-    value = string
-  }))
-  default = []
+variable "environment_variables" {
+  description = "Map of environment varaibles ex. { RDS_ENDPOINT = \"admin@rds@123\"}"
+  type        = map(any)
+  default     = {}
 }
 
 /* -------------------------------------------------------------------------- */

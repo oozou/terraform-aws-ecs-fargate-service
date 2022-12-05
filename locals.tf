@@ -69,6 +69,8 @@ locals {
   ] : []
   mount_points = concat(local.mount_points_application_scratch, try(var.service_info.mount_points, []))
 
+  environment_variables = [for key, value in var.environment_variables : { "name" = key, "value" = value }]
+
   # TODO make it better later
   container_definitions = local.is_apm_enabled ? templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", {
     cpu                     = var.service_info.cpu_allocation
@@ -78,7 +80,7 @@ locals {
     region                  = data.aws_region.this.name
     name                    = local.name
     service_port            = var.service_info.port
-    envvars                 = jsonencode(var.envvars)
+    environment_variables   = jsonencode(local.environment_variables)
     secrets_task_definition = jsonencode(local.secrets_task_definition)
     apm_cpu                 = var.apm_config.cpu
     apm_sidecar_ecr_url     = var.apm_sidecar_ecr_url
@@ -96,7 +98,7 @@ locals {
     region                  = data.aws_region.this.name
     name                    = local.name
     service_port            = var.service_info.port
-    envvars                 = jsonencode(var.envvars)
+    environment_variables   = jsonencode(local.environment_variables)
     secrets_task_definition = jsonencode(local.secrets_task_definition)
     entry_point             = jsonencode(var.entry_point)
     command                 = jsonencode(var.command)
@@ -110,7 +112,7 @@ locals {
     region                  = data.aws_region.this.name
     name                    = local.name
     service_port            = var.service_info.port
-    envvars                 = jsonencode(var.envvars)
+    environment_variables   = jsonencode(local.environment_variables)
     secrets_task_definition = jsonencode(local.secrets_task_definition)
     entry_point             = jsonencode(var.entry_point)
     command                 = jsonencode(var.command)
