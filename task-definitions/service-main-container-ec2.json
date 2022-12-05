@@ -22,7 +22,7 @@
         }
      ],
      "environment" : ${environment_variables},
-     "secrets" : ${secrets_task_definition},
+     "secrets" : ${secret_variables},
      "entryPoint": ${entry_point},
      "command": ${command},
      "systemControls": [

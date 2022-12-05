@@ -175,7 +175,7 @@ resource "random_string" "service_secret_random_suffix" {
 }
 
 resource "aws_secretsmanager_secret" "service_secrets" {
-  for_each = var.secrets
+  for_each = var.secret_variables
 
   name        = "${local.name}/${lower(each.key)}-${random_string.service_secret_random_suffix.result}"
   description = "Secret 'secret_${lower(each.key)}' for service ${local.name}"
@@ -185,7 +185,7 @@ resource "aws_secretsmanager_secret" "service_secrets" {
 }
 
 resource "aws_secretsmanager_secret_version" "service_secrets" {
-  for_each = var.secrets
+  for_each = var.secret_variables
 
   secret_id     = aws_secretsmanager_secret.service_secrets[each.key].id
   secret_string = each.value
@@ -209,7 +209,7 @@ resource "aws_secretsmanager_secret" "service_json_secrets" {
 
 resource "aws_secretsmanager_secret_version" "service_json_secrets" {
   secret_id     = aws_secretsmanager_secret.service_json_secrets.id
-  secret_string = jsonencode(var.json_secrets)
+  secret_string = jsonencode(var.json_secret_variables)
 
   provider = aws
 }
