@@ -19,10 +19,10 @@ data "aws_iam_policy_document" "task_assume_role_policy" {
 resource "aws_iam_role" "task_role" {
   count = var.is_create_iam_role ? 1 : 0
 
-  name               = format("%s-ecs-task-role", local.service_name)
+  name               = format("%s-ecs-task-role", local.name)
   assume_role_policy = data.aws_iam_policy_document.task_assume_role_policy[0].json
 
-  tags = merge(local.tags, { "Name" = format("%s-ecs-task-role", local.service_name) })
+  tags = merge(local.tags, { "Name" = format("%s-ecs-task-role", local.name) })
 }
 
 resource "aws_iam_role_policy_attachment" "task_role" {
@@ -30,12 +30,6 @@ resource "aws_iam_role_policy_attachment" "task_role" {
 
   role       = local.task_role_name
   policy_arn = var.additional_ecs_task_role_policy_arns[count.index]
-}
-/* -------------------------------- Validator ------------------------------- */
-data "aws_iam_role" "get_ecs_task_role" {
-  count = !var.is_create_iam_role ? 1 : 0
-
-  name = local.task_role_name
 }
 
 /* -------------------------------------------------------------------------- */
@@ -59,10 +53,10 @@ data "aws_iam_policy_document" "task_execution_assume_role_policy" {
 resource "aws_iam_role" "task_execution_role" {
   count = var.is_create_iam_role ? 1 : 0
 
-  name               = format("%s-ecs-task-execution-role", local.service_name)
+  name               = format("%s-ecs-task-execution-role", local.name)
   assume_role_policy = data.aws_iam_policy_document.task_execution_assume_role_policy[0].json
 
-  tags = merge(local.tags, { "Name" = format("%s-ecs-task-execution-role", local.service_name) })
+  tags = merge(local.tags, { "Name" = format("%s-ecs-task-execution-role", local.name) })
 }
 
 resource "aws_iam_role_policy_attachment" "task_execution_role" {
@@ -70,12 +64,6 @@ resource "aws_iam_role_policy_attachment" "task_execution_role" {
 
   role       = local.task_execution_role_name
   policy_arn = each.value
-}
-/* -------------------------------- Validator ------------------------------- */
-data "aws_iam_role" "get_ecs_task_execution_role" {
-  count = !var.is_create_iam_role ? 1 : 0
-
-  name = local.task_execution_role_name
 }
 
 /* -------------------------------------------------------------------------- */
@@ -98,7 +86,7 @@ resource "aws_cloudwatch_log_group" "this" {
 resource "aws_lb_target_group" "this" {
   count = var.is_attach_service_with_lb ? 1 : 0
 
-  name = format("%s-tg", substr("${local.service_name}", 0, min(29, length(local.service_name))))
+  name = format("%s-tg", substr("${local.name}", 0, min(29, length(local.name))))
 
   port                 = var.service_info.port
   protocol             = var.service_info.port == 443 ? "HTTPS" : "HTTP"
@@ -115,7 +103,7 @@ resource "aws_lb_target_group" "this" {
     matcher             = lookup(var.health_check, "matcher", null)
   }
 
-  tags = merge(local.tags, { "Name" = format("%s-tg", local.service_name) })
+  tags = merge(local.tags, { "Name" = format("%s-tg", local.name) })
 }
 /* ------------------------------ Listener Rule ----------------------------- */
 resource "aws_lb_listener_rule" "this" {
@@ -163,19 +151,19 @@ module "secret_kms_key" {
   source  = "oozou/kms-key/aws"
   version = "1.0.0"
 
-  name                 = format("%s-service-secrets", local.service_name)
   prefix               = var.prefix
   environment          = var.environment
+  name                 = format("%s-ecs", var.name)
   key_type             = "service"
   append_random_suffix = true
-  description          = format("Secure Secrets Manager's service secrets for service %s", local.service_name)
+  description          = format("Secure Secrets Manager's service secrets for service %s", local.name)
 
   service_key_info = {
-    aws_service_names  = tolist([format("secretsmanager.%s.amazonaws.com", data.aws_region.current.name)])
-    caller_account_ids = tolist([data.aws_caller_identity.current.account_id])
+    aws_service_names  = tolist([format("secretsmanager.%s.amazonaws.com", data.aws_region.this.name)])
+    caller_account_ids = tolist([data.aws_caller_identity.this.account_id])
   }
 
-  tags = merge(local.tags, { "Name" : format("%s-service-secrets", local.service_name) })
+  tags = merge(local.tags, { "Name" : format("%s-ecs", local.name) })
 }
 
 # Append random string to SM Secret names because once we tear down the infra, the secret does not actually
@@ -187,17 +175,17 @@ resource "random_string" "service_secret_random_suffix" {
 }
 
 resource "aws_secretsmanager_secret" "service_secrets" {
-  for_each = var.secrets
+  for_each = var.secret_variables
 
-  name        = "${local.service_name}/${lower(each.key)}-${random_string.service_secret_random_suffix.result}"
-  description = "Secret 'secret_${lower(each.key)}' for service ${local.service_name}"
+  name        = "${local.name}/${lower(each.key)}-${random_string.service_secret_random_suffix.result}"
+  description = "Secret 'secret_${lower(each.key)}' for service ${local.name}"
   kms_key_id  = module.secret_kms_key.key_arn
 
-  tags = merge(local.tags, { Name = "${local.service_name}/${each.key}" })
+  tags = merge(local.tags, { Name = "${local.name}/${each.key}" })
 }
 
 resource "aws_secretsmanager_secret_version" "service_secrets" {
-  for_each = var.secrets
+  for_each = var.secret_variables
 
   secret_id     = aws_secretsmanager_secret.service_secrets[each.key].id
   secret_string = each.value
@@ -208,12 +196,12 @@ resource "aws_secretsmanager_secret_version" "service_secrets" {
 # /*                                 JSON SECRET                                */
 # /* -------------------------------------------------------------------------- */
 resource "aws_secretsmanager_secret" "service_json_secrets" {
-  name        = "${local.service_name}/${random_string.service_secret_random_suffix.result}"
-  description = "Secret for service ${local.service_name}"
+  name        = "${local.name}/${random_string.service_secret_random_suffix.result}"
+  description = "Secret for service ${local.name}"
   kms_key_id  = module.secret_kms_key.key_arn
 
   tags = merge({
-    Name = "${local.service_name}"
+    Name = "${local.name}"
   }, local.tags)
 
   provider = aws
@@ -221,7 +209,7 @@ resource "aws_secretsmanager_secret" "service_json_secrets" {
 
 resource "aws_secretsmanager_secret_version" "service_json_secrets" {
   secret_id     = aws_secretsmanager_secret.service_json_secrets.id
-  secret_string = jsonencode(var.json_secrets)
+  secret_string = jsonencode(var.json_secret_variables)
 
   provider = aws
 }
@@ -231,7 +219,7 @@ resource "aws_secretsmanager_secret_version" "service_json_secrets" {
 resource "aws_iam_role_policy" "task_execution_secrets" {
   count = var.is_create_iam_role ? 1 : 0
 
-  name = "${local.service_name}-ecs-task-execution-secrets"
+  name = "${local.name}-ecs-task-execution-secrets"
   role = local.task_execution_role_id
 
   policy = <<EOF
@@ -251,7 +239,7 @@ EOF
 /*                             ECS Task Definition                            */
 /* -------------------------------------------------------------------------- */
 resource "aws_ecs_task_definition" "this" {
-  family                   = local.service_name
+  family                   = local.name
   network_mode             = "awsvpc"
   requires_compatibilities = var.capacity_provider_strategy == null ? ["FARGATE"] : ["EC2"]
   cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
@@ -293,14 +281,14 @@ resource "aws_ecs_task_definition" "this" {
     }
   }
 
-  tags = merge(local.tags, { "Name" = local.service_name })
+  tags = merge(local.tags, { "Name" = local.name })
 }
 
 /* -------------------------------------------------------------------------- */
 /*                                 ECS Service                                */
 /* -------------------------------------------------------------------------- */
 resource "aws_service_discovery_service" "service" {
-  name = local.service_name
+  name = local.name
 
   dns_config {
     namespace_id = var.service_discovery_namespace
@@ -319,7 +307,7 @@ resource "aws_service_discovery_service" "service" {
 }
 
 resource "aws_ecs_service" "this" {
-  name                    = format("%s", local.service_name)
+  name                    = format("%s", local.name)
   cluster                 = local.ecs_cluster_arn
   task_definition         = aws_ecs_task_definition.this.arn
   desired_count           = var.service_count
@@ -342,7 +330,7 @@ resource "aws_ecs_service" "this" {
 
   service_registries {
     registry_arn   = aws_service_discovery_service.service.arn
-    container_name = local.service_name
+    container_name = local.name
   }
 
   dynamic "capacity_provider_strategy" {
@@ -363,7 +351,7 @@ resource "aws_ecs_service" "this" {
     for_each = var.is_attach_service_with_lb ? [true] : []
     content {
       target_group_arn = aws_lb_target_group.this[0].arn
-      container_name   = local.service_name
+      container_name   = local.name
       container_port   = var.service_info.port
     }
   }
@@ -375,7 +363,7 @@ resource "aws_ecs_service" "this" {
     ]
   }
 
-  tags = merge(local.tags, { Name = format("%s", local.service_name) })
+  tags = merge(local.tags, { Name = format("%s", local.name) })
 }
 
 /* -------------------------------------------------------------------------- */
@@ -386,7 +374,7 @@ resource "aws_appautoscaling_target" "this" {
 
   max_capacity       = var.scaling_configuration.capacity.max_capacity
   min_capacity       = var.scaling_configuration.capacity.min_capacity
-  resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.service_name)
+  resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.name)
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
 }
@@ -399,7 +387,7 @@ resource "aws_appautoscaling_policy" "target_tracking_scaling_policies" {
 
   depends_on = [aws_appautoscaling_target.this[0]]
 
-  name               = format("%s-%s-scaling-policy", local.service_name, each.key)
+  name               = format("%s-%s-scaling-policy", local.name, replace(each.key, "_", "-"))
   resource_id        = aws_appautoscaling_target.this[0].resource_id
   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
@@ -422,7 +410,7 @@ resource "aws_appautoscaling_policy" "step_scaling_policies" {
 
   depends_on = [aws_appautoscaling_target.this[0]]
 
-  name               = format("%s-%s-scaling-policy", local.service_name, each.key)
+  name               = format("%s-%s-scaling-policy", local.name, replace(each.key, "_", "-"))
   resource_id        = aws_appautoscaling_target.this[0].resource_id
   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
@@ -468,7 +456,7 @@ module "step_alarm" {
 
   prefix      = var.prefix
   environment = var.environment
-  name        = format("%s-%s-alarm", local.service_name, each.key)
+  name        = replace(each.key, "_", "-")
 
   alarm_description = format(
     "%s's %s %s %s in period %ss with %s datapoint",
@@ -485,16 +473,15 @@ module "step_alarm" {
   metric_name         = lookup(each.value, "metric_name", null)
   namespace           = "AWS/ECS"
   period              = lookup(each.value, "period", null)
-  statistic           = lookup(each.value, "statistic", "Average")
+  statistic           = lookup(each.value, "statistic", null)
   threshold           = lookup(each.value, "threshold", null)
 
   dimensions = {
     ClusterName = var.ecs_cluster_name
-    ServiceName = local.service_name
+    ServiceName = local.name
   }
 
-  alarm_actions = [aws_appautoscaling_policy.step_scaling_policies[each.key].arn]
-  # TODO set this to alrm to resource
+  alarm_actions = concat([aws_appautoscaling_policy.step_scaling_policies[each.key].arn], lookup(each.value, "alarm_actions", lookup(var.scaling_configuration, "default_alarm_actions", [])))
 
   tags = var.tags
 }

@@ -1,19 +1,28 @@
 /* -------------------------------------------------------------------------- */
 /*                                   Generic                                  */
 /* -------------------------------------------------------------------------- */
-variable "prefix" {
-  description = "The prefix name of customer to be displayed in AWS console and resource"
+variable "name_override" {
+  description = "(Optional) Full name to override usage from format(\"%s-%s-%s-cf\", var.prefix, var.environment, var.name)"
   type        = string
+  default     = ""
+}
+
+variable "prefix" {
+  description = "(Optional) Prefix as a part of format(\"%s-%s-%s-cf\", var.prefix, var.environment, var.name); ex. oozou-xxx-xxx-cf"
+  type        = string
+  default     = ""
 }
 
 variable "environment" {
-  description = "Environment Variable used as a prefix"
+  description = "(Optional) Environment as a part of format(\"%s-%s-%s-cf\", var.prefix, var.environment, var.name); ex. xxx-prod-xxx-cf"
   type        = string
+  default     = ""
 }
 
 variable "name" {
-  description = "Name of the ECS cluster to create"
+  description = "(Optional) Name as a part of format(\"%s-%s-%s-cf\", var.prefix, var.environment, var.name); ex. xxx-xxx-cms-cf"
   type        = string
+  default     = ""
 }
 
 variable "tags" {
@@ -150,31 +159,22 @@ variable "custom_header_token" {
 /* -------------------------------------------------------------------------- */
 /*                                   Secret                                   */
 /* -------------------------------------------------------------------------- */
-variable "secrets" {
+variable "secret_variables" {
   description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
   type        = map(string)
   default     = {}
 }
 
-variable "json_secrets" {
+variable "json_secret_variables" {
   description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
   type        = map(string)
   default     = {}
 }
 
-variable "envvars" {
-  description = <<-EOT
-    List of [{name = \"\", value = \"\"}] pairs of environment variables
-      envvars = [{
-        name  = "EXAMPLE_ENV"
-        value = "example"
-      }]
-    EOT
-  type = set(object({
-    name  = string
-    value = string
-  }))
-  default = []
+variable "environment_variables" {
+  description = "Map of environment varaibles ex. { RDS_ENDPOINT = \"admin@rds@123\"}"
+  type        = map(any)
+  default     = {}
 }
 
 /* -------------------------------------------------------------------------- */

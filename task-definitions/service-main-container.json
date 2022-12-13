@@ -4,7 +4,7 @@
      "image":"${service_image}",
      "mountPoints": ${mount_points},
      "memory":${memory},
-     "name":"${service_name}",
+     "name":"${name}",
      "networkMode":"awsvpc",
      "essential":true,
      "logConfiguration":{
@@ -12,7 +12,7 @@
         "options":{
            "awslogs-group":"${log_group_name}",
            "awslogs-region":"${region}",
-           "awslogs-stream-prefix":"${service_name}"
+           "awslogs-stream-prefix":"${name}"
         }
      },
      "portMappings":[
@@ -21,8 +21,8 @@
            "hostPort":${service_port}
         }
      ],
-     "environment" : ${envvars},
-     "secrets" : ${secrets_task_definition},
+     "environment" : ${environment_variables},
+     "secrets" : ${secret_variables},
      "entryPoint": ${entry_point},     
      "command": ${command}
   }
