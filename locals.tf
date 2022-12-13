@@ -76,26 +76,7 @@ locals {
 
   environment_variables = [for key, value in var.environment_variables : { "name" = key, "value" = value }]
 
-  # TODO make it better later
-  container_definitions = local.is_apm_enabled ? templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", {
-    cpu                   = var.service_info.cpu_allocation
-    service_image         = var.service_info.image
-    memory                = var.service_info.mem_allocation
-    log_group_name        = local.log_group_name
-    region                = data.aws_region.this.name
-    name                  = local.name
-    service_port          = var.service_info.port
-    environment_variables = jsonencode(local.environment_variables)
-    secret_variables      = jsonencode(local.secrets_task_unique_definition)
-    apm_cpu               = var.apm_config.cpu
-    apm_sidecar_ecr_url   = var.apm_sidecar_ecr_url
-    apm_memory            = var.apm_config.memory
-    apm_name              = local.apm_name
-    apm_service_port      = var.apm_config.service_port
-    entry_point           = jsonencode(var.entry_point)
-    command               = jsonencode(var.command)
-    mount_points          = jsonencode(local.mount_points)
-    }) : templatefile("${path.module}/task-definitions/service-main-container.json", {
+  pre_container_definitions_template = {
     cpu                   = var.service_info.cpu_allocation
     service_image         = var.service_info.image
     memory                = var.service_info.mem_allocation
@@ -106,24 +87,24 @@ locals {
     environment_variables = jsonencode(local.environment_variables)
     secret_variables      = jsonencode(local.secrets_task_unique_definition)
     entry_point           = jsonencode(var.entry_point)
-    command               = jsonencode(var.command)
     mount_points          = jsonencode(local.mount_points)
-  })
-  container_definitions_ec2 = templatefile("${path.module}/task-definitions/service-main-container-ec2.json", {
-    cpu                   = var.service_info.cpu_allocation
-    service_image         = var.service_info.image
-    memory                = var.service_info.mem_allocation
-    log_group_name        = local.log_group_name
-    region                = data.aws_region.this.name
-    name                  = local.name
-    service_port          = var.service_info.port
-    environment_variables = jsonencode(local.environment_variables)
-    secret_variables      = jsonencode(local.secrets_task_unique_definition)
-    entry_point           = jsonencode(var.entry_point)
     command               = jsonencode(var.command)
-    unix_max_connection   = tostring(var.unix_max_connection)
-    mount_points          = jsonencode(local.mount_points)
-  })
+  }
+  apm_template = {
+    apm_cpu             = var.apm_config.cpu
+    apm_sidecar_ecr_url = var.apm_sidecar_ecr_url
+    apm_memory          = var.apm_config.memory
+    apm_name            = local.apm_name
+    apm_service_port    = var.apm_config.service_port
+  }
+  ec2_template = {
+    unix_max_connection = tostring(var.unix_max_connection)
+  }
+  container_definitions_template = local.is_apm_enabled ? merge(local.pre_container_definitions_template, local.apm_template) : local.pre_container_definitions_template
+  render_container_definitions   = local.is_apm_enabled ? templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", local.container_definitions_template) : templatefile("${path.module}/task-definitions/service-main-container.json", local.container_definitions_template)
+
+  container_definitions     = local.render_container_definitions
+  container_definitions_ec2 = templatefile("${path.module}/task-definitions/service-main-container-ec2.json", merge(local.pre_container_definitions_template, local.ec2_template))
 }
 
 /* -------------------------------------------------------------------------- */
