@@ -151,9 +151,9 @@ module "secret_kms_key" {
   source  = "oozou/kms-key/aws"
   version = "1.0.0"
 
-  name                 = format("%s-service-secrets", local.name)
   prefix               = var.prefix
   environment          = var.environment
+  name                 = format("%s-ecs", var.name)
   key_type             = "service"
   append_random_suffix = true
   description          = format("Secure Secrets Manager's service secrets for service %s", local.name)
@@ -163,7 +163,7 @@ module "secret_kms_key" {
     caller_account_ids = tolist([data.aws_caller_identity.this.account_id])
   }
 
-  tags = merge(local.tags, { "Name" : format("%s-service-secrets", local.name) })
+  tags = merge(local.tags, { "Name" : format("%s-ecs", local.name) })
 }
 
 # Append random string to SM Secret names because once we tear down the infra, the secret does not actually
