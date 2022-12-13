@@ -1,5 +1,52 @@
 # Change Log
 
+## [v1.1.10] - 2022-12-13
+
+### Added
+
+- Support naming override with `var.name_override`; raise exception if naming override or formatted name is not given
+    - `local.empty_prefix`
+    - `local.empty_environment`
+    - `local.empty_name`
+    - `local.raise_empty_name`
+- Add new variables `var.name_override`
+- Add support step scaling alarm in module `step_alarm`
+    - `concat([aws_appautoscaling_policy.step_scaling_policies[each.key].arn], lookup(each.value, "alarm_actions", lookup(var.scaling_configuration, "default_alarm_actions", [])))`
+
+### Changed
+
+- Update data sources 
+    - `data.aws_caller_identity.current` to `data.aws_caller_identity.this`
+    - `data.aws_region.current` to `data.aws_region.this`
+- Rename variables in local {...}
+    - `local.service_name` to `local.name`
+- Update how to struct task definition 
+    - Remove `local.container_definitions`
+    - Update `local.container_definitions_ec2`
+    - Add `local.pre_container_definitions_template`, `local.apm_template`, `local.ec2_template`, `local.ec2_template` and `local.render_container_definitions`
+- Update variables description and default value for `var.prefix`, `var.environment` and `var.name`
+- Rename variables
+    - `var.secrets` to `var.secret_variables`
+    - `var.json_secrets` to `var.json_secret_variables`
+    - `var.envvars` to `var.environment_variables` *data structure is changed*
+- Update resource `aws_lb_listener_rule.this`'s argument
+    - `name` from `format("%s-service-secrets", local.service_name)` to `format("%s-ecs", var.name)`
+    - `tags` from `merge(local.tags, { "Name" : format("%s-service-secrets", local.service_name) })` to `merge(local.tags, { "Name" : format("%s-ecs", local.name) })`
+- Update resource `aws_appautoscaling_policy.target_tracking_scaling_policies`'s argument
+    - `name` from `format("%s-%s-scaling-policy", local.service_name, each.key)` to `format("%s-%s-scaling-policy", local.name, replace(each.key, "_", "-"))`
+- Update resource `aws_appautoscaling_policy.step_scaling_policies`'s argument
+    - `name` from `format("%s-%s-scaling-policy", local.service_name, each.key)` to `format("%s-%s-scaling-policy", local.name, replace(each.key, "_", "-"))`
+- Update module `module.step_alarm`'s argument
+    - `name` from `format("%s-%s-alarm", local.service_name, each.key)` to `replace(each.key, "_", "-")`
+    - `statistic` from `lookup(each.value, "statistic", "Average")` to `lookup(each.value, "statistic", null)`
+- Update parameter in file `task-definitions/*.json` to match with others
+
+### Removed
+
+- Remove role validator (Let's AWS API handle this)
+    - `data.aws_iam_role.get_ecs_task_role`
+    - `data.aws_iam_role.get_ecs_task_execution_role`
+
 ## [v1.1.9] - 2022-11-23
 
 ### Changed
