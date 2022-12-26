@@ -27,3 +27,13 @@ output "secret_arns" {
   description = "List of ARNs of the SecretsManager secrets"
   value       = local.secret_manager_arns
 }
+
+output "target_group_arn" {
+  description = "id - ARN of the Target Group (matches arn)."
+  value       = try(aws_lb_target_group.this[0].arn, "")
+}
+
+output "target_group_id" {
+  description = "id - ARN of the Target Group (matches arn)."
+  value       = try(aws_lb_target_group.this[0].id, "")
+}
