@@ -20,7 +20,7 @@ locals {
   ecs_task_execution_role_policy_arns         = toset(concat(var.additional_ecs_task_execution_role_policy_arns, local.ecs_default_task_execution_role_policy_arns))
 
   # Logging
-  log_group_name = format("%s-service-log-group", local.name)
+  log_group_name = format("%s-log-group", local.name)
 
   # Volume
   volumes = concat(var.efs_volumes)
