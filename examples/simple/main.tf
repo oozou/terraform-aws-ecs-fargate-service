@@ -112,20 +112,20 @@ module "service_api" {
   }
   is_application_scratch_volume_enabled = true
 
-  # Secret and Env
-  environment_variables = {
-    THIS_IS_ENV  = "ENV1",
-    THIS_IS_ENVV = "ENVV",
-  }
-  # WARNING Secret should not be in plain text
-  secret_variables = {
-    THIS_IS_SECRET       = "1xxxxx",
-    THIS_IS_SECRETT      = "2xxxxx",
-    THIS_IS_SECRETTT     = "3xxxxx",
-    THIS_IS_SECRETTTTT   = "4xxxxx",
-    THIS_IS_SECRETTTTTT  = "5xxxxx",
-    THIS_IS_SECRETTTTTTT = "6xxxxx",
-  }
+  # # Secret and Env
+  # environment_variables = {
+  #   THIS_IS_ENV  = "ENV1",
+  #   THIS_IS_ENVV = "ENVV",
+  # }
+  # # WARNING Secret should not be in plain text
+  # secret_variables = {
+  #   THIS_IS_SECRET       = "1xxxxx",
+  #   THIS_IS_SECRETT      = "2xxxxx",
+  #   THIS_IS_SECRETTT     = "3xxxxx",
+  #   THIS_IS_SECRETTTTT   = "4xxxxx",
+  #   THIS_IS_SECRETTTTTT  = "5xxxxx",
+  #   THIS_IS_SECRETTTTTTT = "6xxxxx",
+  # }
 
   # ECS service
   ecs_cluster_name            = module.fargate_cluster.ecs_cluster_name
