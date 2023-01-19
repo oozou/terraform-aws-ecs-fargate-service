@@ -10,7 +10,6 @@ locals {
   # Task Role
   task_role_arn  = var.is_create_iam_role ? aws_iam_role.task_role[0].arn : var.exists_task_role_arn
   task_role_name = try(split("/", local.task_role_arn)[1], "")
-  task_role_id   = local.task_role_name
 
   # Task Exec Role
   task_execution_role_arn                     = var.is_create_iam_role ? aws_iam_role.task_execution_role[0].arn : var.exists_task_execution_role_arn

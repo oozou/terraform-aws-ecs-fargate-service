@@ -166,31 +166,10 @@ module "secret_kms_key" {
   tags = merge(local.tags, { "Name" : format("%s-ecs", local.name) })
 }
 
-# Append random string to SM Secret names because once we tear down the infra, the secret does not actually
-# get deleted right away, which means that if we then try to recreate the infra, it'll fail as the
-# secret name already exists.
 resource "random_string" "service_secret_random_suffix" {
   length  = 6
   special = false
 }
-
-# resource "aws_secretsmanager_secret" "service_secrets" {
-#   for_each = var.secret_variables
-
-#   name        = "${local.name}/${lower(each.key)}-${random_string.service_secret_random_suffix.result}"
-#   description = "Secret 'secret_${lower(each.key)}' for service ${local.name}"
-#   kms_key_id  = module.secret_kms_key.key_arn
-
-#   tags = merge(local.tags, { Name = "${local.name}/${each.key}" })
-# }
-
-# resource "aws_secretsmanager_secret_version" "service_secrets" {
-#   for_each = var.secret_variables
-
-#   secret_id     = aws_secretsmanager_secret.service_secrets[each.key].id
-#   secret_string = each.value
-# }
-
 
 /* -------------------------------------------------------------------------- */
 /*                                   Secret                                   */
