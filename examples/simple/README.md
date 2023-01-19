@@ -65,26 +65,33 @@ No requirements.
 
 ## Providers
 
-No providers.
+| Name                                              | Version |
+|---------------------------------------------------|---------|
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 4.50.0  |
 
 ## Modules
 
-| Name | Source | Version |
-|------|--------|---------|
-| <a name="module_service_api"></a> [service\_api](#module\_service\_api) | ../.. | n/a |
+| Name                                                                                | Source                        | Version |
+|-------------------------------------------------------------------------------------|-------------------------------|---------|
+| <a name="module_fargate_cluster"></a> [fargate\_cluster](#module\_fargate\_cluster) | oozou/ecs-fargate-cluster/aws | 1.0.7   |
+| <a name="module_service_api"></a> [service\_api](#module\_service\_api)             | ../..                         | n/a     |
+| <a name="module_vpc"></a> [vpc](#module\_vpc)                                       | oozou/vpc/aws                 | 1.2.4   |
 
 ## Resources
 
-No resources.
+| Name                                                                                                                       | Type        |
+|----------------------------------------------------------------------------------------------------------------------------|-------------|
+| [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
+| [aws_region.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region)                   | data source |
 
 ## Inputs
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_generics_info"></a> [generics\_info](#input\_generics\_info) | Generic infomation | <pre>object({<br>    region      = string<br>    prefix      = string<br>    environment = string<br>    name        = string<br>    custom_tags = map(any)<br>  })</pre> | n/a | yes |
-| <a name="input_service_info"></a> [service\_info](#input\_service\_info) | is\_attach\_service\_with\_lb >> Attach the container to the public ALB? (true/false)<br>  service\_alb\_host\_header   >> Mention host header for api endpoint<br>  service\_info              >> The configuration of service<br>  health\_check              >> Health Check Config for the service | <pre>map(object({<br>    is_attach_service_with_lb = bool<br>    service_alb_host_header   = string<br>    alb_paths                 = list(string)<br>    alb_priority              = string<br>    service_info = object({<br>      cpu_allocation = number<br>      mem_allocation = number<br>      containers_num = number<br>      port           = number<br>      image          = string<br>    })<br>    health_check = object({<br>      interval            = number<br>      path                = string<br>      timeout             = number<br>      healthy_threshold   = number<br>      unhealthy_threshold = number<br>      matcher             = string<br>    })<br>  }))</pre> | n/a | yes |
-| <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A list of subnet IDs to launch resources in | `list(string)` | n/a | yes |
-| <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID to deploy | `string` | n/a | yes |
+| Name                                                                  | Description                                                                                                   | Type          | Default | Required |
+|-----------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|---------------|---------|:--------:|
+| <a name="input_custom_tags"></a> [custom\_tags](#input\_custom\_tags) | Custom tags which can be passed on to the AWS resources. They should be key value pairs having distinct keys. | `map(string)` | `{}`    |    no    |
+| <a name="input_environment"></a> [environment](#input\_environment)   | [Required] Name prefix used for resource naming in this component                                             | `string`      | n/a     |   yes    |
+| <a name="input_name"></a> [name](#input\_name)                        | [Required] Name of Platfrom or application                                                                    | `string`      | n/a     |   yes    |
+| <a name="input_prefix"></a> [prefix](#input\_prefix)                  | [Required] Name prefix used for resource naming in this component                                             | `string`      | n/a     |   yes    |
 
 ## Outputs
 
