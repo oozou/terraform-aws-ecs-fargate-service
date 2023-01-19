@@ -165,11 +165,11 @@ variable "secret_variables" {
   default     = {}
 }
 
-variable "json_secret_variables" {
-  description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
-  type        = map(string)
-  default     = {}
-}
+# variable "json_secret_variables" {
+#   description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
+#   type        = map(string)
+#   default     = {}
+# }
 
 variable "environment_variables" {
   description = "Map of environment varaibles ex. { RDS_ENDPOINT = \"admin@rds@123\"}"

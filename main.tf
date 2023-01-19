@@ -174,44 +174,38 @@ resource "random_string" "service_secret_random_suffix" {
   special = false
 }
 
+# resource "aws_secretsmanager_secret" "service_secrets" {
+#   for_each = var.secret_variables
+
+#   name        = "${local.name}/${lower(each.key)}-${random_string.service_secret_random_suffix.result}"
+#   description = "Secret 'secret_${lower(each.key)}' for service ${local.name}"
+#   kms_key_id  = module.secret_kms_key.key_arn
+
+#   tags = merge(local.tags, { Name = "${local.name}/${each.key}" })
+# }
+
+# resource "aws_secretsmanager_secret_version" "service_secrets" {
+#   for_each = var.secret_variables
+
+#   secret_id     = aws_secretsmanager_secret.service_secrets[each.key].id
+#   secret_string = each.value
+# }
+
+
+/* -------------------------------------------------------------------------- */
+/*                                   Secret                                   */
+/* -------------------------------------------------------------------------- */
 resource "aws_secretsmanager_secret" "service_secrets" {
-  for_each = var.secret_variables
-
-  name        = "${local.name}/${lower(each.key)}-${random_string.service_secret_random_suffix.result}"
-  description = "Secret 'secret_${lower(each.key)}' for service ${local.name}"
-  kms_key_id  = module.secret_kms_key.key_arn
-
-  tags = merge(local.tags, { Name = "${local.name}/${each.key}" })
-}
-
-resource "aws_secretsmanager_secret_version" "service_secrets" {
-  for_each = var.secret_variables
-
-  secret_id     = aws_secretsmanager_secret.service_secrets[each.key].id
-  secret_string = each.value
-}
-
-
-# /* -------------------------------------------------------------------------- */
-# /*                                 JSON SECRET                                */
-# /* -------------------------------------------------------------------------- */
-resource "aws_secretsmanager_secret" "service_json_secrets" {
   name        = "${local.name}/${random_string.service_secret_random_suffix.result}"
   description = "Secret for service ${local.name}"
   kms_key_id  = module.secret_kms_key.key_arn
 
-  tags = merge({
-    Name = "${local.name}"
-  }, local.tags)
-
-  provider = aws
+  tags = merge({ Name = "${local.name}" }, local.tags)
 }
 
-resource "aws_secretsmanager_secret_version" "service_json_secrets" {
-  secret_id     = aws_secretsmanager_secret.service_json_secrets.id
-  secret_string = jsonencode(var.json_secret_variables)
-
-  provider = aws
+resource "aws_secretsmanager_secret_version" "service_secrets" {
+  secret_id     = aws_secretsmanager_secret.service_secrets.id
+  secret_string = jsonencode(var.secret_variables)
 }
 
 # We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
