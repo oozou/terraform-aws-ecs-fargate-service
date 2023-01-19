@@ -211,7 +211,7 @@ resource "aws_secretsmanager_secret_version" "service_secrets" {
 # We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
 # inject them as environment variables in the service
 resource "aws_iam_role_policy" "task_execution_secrets" {
-  count = var.is_create_iam_role ? 1 : 0
+  count = var.is_create_iam_role && length(var.secret_variables) > 0 ? 1 : 0
 
   name = "${local.name}-ecs-task-execution-secrets"
   role = local.task_execution_role_id
@@ -222,7 +222,7 @@ resource "aws_iam_role_policy" "task_execution_secrets" {
       {
         "Effect": "Allow",
         "Action": ["secretsmanager:GetSecretValue"],
-        "Resource": ${jsonencode(format("%s/*", split("/", local.secret_manager_json_arn)[0]))}
+        "Resource": ${jsonencode(format("%s/*", split("/", aws_secretsmanager_secret.service_secrets.arn)[0]))}
       }
     ]
 }
