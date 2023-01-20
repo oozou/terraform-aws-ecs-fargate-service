@@ -167,7 +167,7 @@ module "secret_kms_key" {
 }
 
 resource "random_string" "service_secret_random_suffix" {
-  length  = 6
+  length  = 5
   special = false
 }
 
