@@ -111,8 +111,9 @@ locals {
 /* -------------------------------------------------------------------------- */
 locals {
   secrets_task_definition = [for secret_name, secret_value in var.secret_variables : {
-    name      = secret_name,
-    valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
+    name = secret_name,
+    # valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
+    valueFrom = "ASSDD"
   }]
 }
 
