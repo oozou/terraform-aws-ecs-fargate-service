@@ -174,18 +174,18 @@ resource "random_string" "service_secret_random_suffix" {
 /* -------------------------------------------------------------------------- */
 /*                                   Secret                                   */
 /* -------------------------------------------------------------------------- */
-# resource "aws_secretsmanager_secret" "service_secrets" {
-#   name        = "${local.name}/${random_string.service_secret_random_suffix.result}"
-#   description = "Secret for service ${local.name}"
-#   kms_key_id  = module.secret_kms_key.key_arn
+resource "aws_secretsmanager_secret" "service_secrets" {
+  name        = "${local.name}/${random_string.service_secret_random_suffix.result}"
+  description = "Secret for service ${local.name}"
+  kms_key_id  = module.secret_kms_key.key_arn
 
-#   tags = merge({ Name = "${local.name}" }, local.tags)
-# }
+  tags = merge({ Name = "${local.name}" }, local.tags)
+}
 
-# resource "aws_secretsmanager_secret_version" "service_secrets" {
-#   secret_id     = aws_secretsmanager_secret.service_secrets.id
-#   secret_string = jsonencode(var.secret_variables)
-# }
+resource "aws_secretsmanager_secret_version" "service_secrets" {
+  secret_id     = aws_secretsmanager_secret.service_secrets.id
+  secret_string = jsonencode(var.secret_variables)
+}
 
 # We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
 # inject them as environment variables in the service
@@ -201,12 +201,11 @@ resource "aws_iam_role_policy" "task_execution_secrets" {
       {
         "Effect": "Allow",
         "Action": ["secretsmanager:GetSecretValue"],
-        "Resource": "*"
+        "Resource": ${jsonencode(format("%s/*", split("/", aws_secretsmanager_secret.service_secrets.arn)[0]))}
       }
     ]
 }
 EOF
-  # "Resource": ${jsonencode(format("%s/*", split("/", aws_secretsmanager_secret.service_secrets.arn)[0]))}
 }
 
 /* -------------------------------------------------------------------------- */
