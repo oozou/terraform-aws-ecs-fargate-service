@@ -33,10 +33,10 @@
 #   value       = try(aws_lb_target_group.this[0].arn, "")
 # }
 
-# output "target_group_id" {
-#   description = "id - ARN of the Target Group (matches arn)."
-#   value       = try(aws_lb_target_group.this[0].id, "")
-# }
+output "target_group_id" {
+  description = "id - ARN of the Target Group (matches arn)."
+  value       = try(aws_lb_target_group.this[0].id, "")
+}
 
 output "cloudwatch_log_group_name" {
   description = "The name of the log group"
