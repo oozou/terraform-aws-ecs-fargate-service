@@ -1,11 +1,5 @@
 # Change Log
 
-## [v1.1.11] - 2022-12-22
-
-### Added
-
-- Add outputs `target_group_arn` and `target_group_id`
-
 ## [v1.1.10] - 2022-12-13
 
 ### Added
