@@ -6,6 +6,7 @@
 
 - Add and verify example in `./examples/simple`
 - Add outputs `cloudwatch_log_group_name` and `cloudwatch_log_group_arn`
+- Add variable `propagate_tags` with default value TASK_DEFINITION
 
 ### Changed
 
@@ -13,6 +14,7 @@
 - Update task definition's construction procedure for the secret ARN
 - Update resource `random_string.service_secret_random_suffix`'s attribute `length` from 6 to 5
 - Update resource `aws_iam_role_policy.task_execution_secrets`'s condition and resource arns
+- Update resource `aws_ecs_service.this` to support propagate_tags
 
 ### Removed
 
