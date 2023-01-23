@@ -165,12 +165,6 @@ variable "secret_variables" {
   default     = {}
 }
 
-variable "json_secret_variables" {
-  description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
-  type        = map(string)
-  default     = {}
-}
-
 variable "environment_variables" {
   description = "Map of environment varaibles ex. { RDS_ENDPOINT = \"admin@rds@123\"}"
   type        = map(any)
@@ -250,6 +244,12 @@ variable "application_subnet_ids" {
 variable "security_groups" {
   description = "Security groups to apply to service"
   type        = list(string)
+}
+
+variable "propagate_tags" {
+  description = "(Optional) Specifies whether to propagate the tags from the task definition or the service to the tasks. The valid values are SERVICE and TASK_DEFINITION."
+  type        = string
+  default     = "TASK_DEFINITION"
 }
 
 /* -------------------------------------------------------------------------- */

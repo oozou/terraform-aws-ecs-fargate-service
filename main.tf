@@ -166,58 +166,31 @@ module "secret_kms_key" {
   tags = merge(local.tags, { "Name" : format("%s-ecs", local.name) })
 }
 
-# Append random string to SM Secret names because once we tear down the infra, the secret does not actually
-# get deleted right away, which means that if we then try to recreate the infra, it'll fail as the
-# secret name already exists.
 resource "random_string" "service_secret_random_suffix" {
-  length  = 6
+  length  = 5
   special = false
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                   Secret                                   */
+/* -------------------------------------------------------------------------- */
 resource "aws_secretsmanager_secret" "service_secrets" {
-  for_each = var.secret_variables
-
-  name        = "${local.name}/${lower(each.key)}-${random_string.service_secret_random_suffix.result}"
-  description = "Secret 'secret_${lower(each.key)}' for service ${local.name}"
-  kms_key_id  = module.secret_kms_key.key_arn
-
-  tags = merge(local.tags, { Name = "${local.name}/${each.key}" })
-}
-
-resource "aws_secretsmanager_secret_version" "service_secrets" {
-  for_each = var.secret_variables
-
-  secret_id     = aws_secretsmanager_secret.service_secrets[each.key].id
-  secret_string = each.value
-}
-
-
-# /* -------------------------------------------------------------------------- */
-# /*                                 JSON SECRET                                */
-# /* -------------------------------------------------------------------------- */
-resource "aws_secretsmanager_secret" "service_json_secrets" {
   name        = "${local.name}/${random_string.service_secret_random_suffix.result}"
   description = "Secret for service ${local.name}"
   kms_key_id  = module.secret_kms_key.key_arn
 
-  tags = merge({
-    Name = "${local.name}"
-  }, local.tags)
-
-  provider = aws
+  tags = merge({ Name = "${local.name}" }, local.tags)
 }
 
-resource "aws_secretsmanager_secret_version" "service_json_secrets" {
-  secret_id     = aws_secretsmanager_secret.service_json_secrets.id
-  secret_string = jsonencode(var.json_secret_variables)
-
-  provider = aws
+resource "aws_secretsmanager_secret_version" "service_secrets" {
+  secret_id     = aws_secretsmanager_secret.service_secrets.id
+  secret_string = jsonencode(var.secret_variables)
 }
 
 # We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
 # inject them as environment variables in the service
 resource "aws_iam_role_policy" "task_execution_secrets" {
-  count = var.is_create_iam_role ? 1 : 0
+  count = var.is_create_iam_role && length(var.secret_variables) > 0 ? 1 : 0
 
   name = "${local.name}-ecs-task-execution-secrets"
   role = local.task_execution_role_id
@@ -228,7 +201,7 @@ resource "aws_iam_role_policy" "task_execution_secrets" {
       {
         "Effect": "Allow",
         "Action": ["secretsmanager:GetSecretValue"],
-        "Resource": ${jsonencode(format("%s/*", split("/", local.secret_manager_json_arn)[0]))}
+        "Resource": ${jsonencode(format("%s/*", split("/", aws_secretsmanager_secret.service_secrets.arn)[0]))}
       }
     ]
 }
@@ -314,6 +287,7 @@ resource "aws_ecs_service" "this" {
   enable_execute_command  = var.is_enable_execute_command
   enable_ecs_managed_tags = true
   launch_type             = var.capacity_provider_strategy == null ? "FARGATE" : null
+  propagate_tags          = var.propagate_tags
 
   network_configuration {
     security_groups = var.security_groups

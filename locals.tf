@@ -10,7 +10,6 @@ locals {
   # Task Role
   task_role_arn  = var.is_create_iam_role ? aws_iam_role.task_role[0].arn : var.exists_task_role_arn
   task_role_name = try(split("/", local.task_role_arn)[1], "")
-  task_role_id   = local.task_role_name
 
   # Task Exec Role
   task_execution_role_arn                     = var.is_create_iam_role ? aws_iam_role.task_execution_role[0].arn : var.exists_task_execution_role_arn
@@ -20,7 +19,7 @@ locals {
   ecs_task_execution_role_policy_arns         = toset(concat(var.additional_ecs_task_execution_role_policy_arns, local.ecs_default_task_execution_role_policy_arns))
 
   # Logging
-  log_group_name = format("%s-service-log-group", local.name)
+  log_group_name = format("%s-log-group", local.name)
 
   # Volume
   volumes = concat(var.efs_volumes)
@@ -85,7 +84,7 @@ locals {
     name                  = local.name
     service_port          = var.service_info.port
     environment_variables = jsonencode(local.environment_variables)
-    secret_variables      = jsonencode(local.secrets_task_unique_definition)
+    secret_variables      = jsonencode(local.secrets_task_definition)
     entry_point           = jsonencode(var.entry_point)
     mount_points          = jsonencode(local.mount_points)
     command               = jsonencode(var.command)
@@ -108,46 +107,13 @@ locals {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                   SECRET                                   */
+/*                                   Secret                                   */
 /* -------------------------------------------------------------------------- */
 locals {
-  # Create secret arn collection for granting "secretmanager:GetSecret" permission
-  secret_manager_arns = [for secret in aws_secretsmanager_secret.service_secrets : secret.arn]
-
-  # Get Secret Name Arrays
-  secret_names = keys(var.secret_variables)
-
-  # Create a secret map { secret_name : secret_arn } using ZipMap Function for iteration
-  secrets_name_arn_map = zipmap(local.secret_names, local.secret_manager_arns)
-
-  # Create secrets format for Task Definition
-  secrets_task_unique_definition = [for secret_key, secret_arn in local.secrets_name_arn_map :
-    tomap({
-      name      = upper(secret_key)
-      valueFrom = secret_arn
-    })
-  ]
-}
-
-/* -------------------------------------------------------------------------- */
-/*                                 JSON SECRET                                */
-/* -------------------------------------------------------------------------- */
-locals {
-  # Get secret arn for granting  "secretmanager:GetSecret" permission
-  secret_manager_json_arn = aws_secretsmanager_secret.service_json_secrets.arn
-
-  # Map JSON Secret to Secret Arrays
-  secrets_name_json_arn_map = { "JSON_SECRET" : local.secret_manager_json_arn }
-
-  # Create secrets JSON format for Task Definition
-  secrets_json_task_definition = [for secret_key, secret_arn in local.secrets_name_json_arn_map :
-    tomap({
-      name      = upper(secret_key)
-      valueFrom = secret_arn
-    })
-  ]
-  # Concat Secret and JSON Secret to the one list.
-  secrets_task_definition = concat(local.secrets_task_unique_definition, local.secrets_json_task_definition)
+  secrets_task_definition = [for secret_name, secret_value in var.secret_variables : {
+    name      = secret_name,
+    valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
+  }]
 }
 
 /* -------------------------------------------------------------------------- */
