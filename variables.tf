@@ -246,6 +246,12 @@ variable "security_groups" {
   type        = list(string)
 }
 
+variable "propagate_tags" {
+  description = "(Optional) Specifies whether to propagate the tags from the task definition or the service to the tasks. The valid values are SERVICE and TASK_DEFINITION."
+  type        = string
+  default     = "TASK_DEFINITION"
+}
+
 /* -------------------------------------------------------------------------- */
 /*                             Auto Scaling Group                             */
 /* -------------------------------------------------------------------------- */
