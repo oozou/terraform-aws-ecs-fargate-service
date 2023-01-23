@@ -1,5 +1,30 @@
 # Change Log
 
+## [v1.1.12] - 2023-01-23
+
+### Added
+
+- Add and verify example in `./examples/simple`
+- Add outputs `cloudwatch_log_group_name` and `cloudwatch_log_group_arn`
+
+### Changed
+
+- Target group naming `local.log_group_name`; remove `service` in string
+- Update task definition's construction procedure for the secret ARN
+- Update resource `random_string.service_secret_random_suffix`'s attribute `length` from 6 to 5
+- Update resource `aws_iam_role_policy.task_execution_secrets`'s condition and resource arns
+
+### Removed
+
+- Remove `local.task_role_id`
+- Remove all previous secrets creation
+    - The following `local` are removed `secret_manager_arns` ,`secret_names`, `secrets_name_arn_map`, `secrets_task_unique_definition`, `secret_manager_json_arn`, `secrets_name_json_arn_map`, `secrets_json_task_definition`
+- Remove resource:
+    - `aws_secretsmanager_secret.service_json_secrets`
+    - `aws_secretsmanager_secret_version.service_json_secrets`
+- Remove outputs `outask_role_id` and `secret_json_arn`
+- Remove variable `json_secret_variables`
+
 ## [v1.1.11] - 2022-12-22
 
 ### Added
