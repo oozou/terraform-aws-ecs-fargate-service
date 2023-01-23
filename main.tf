@@ -287,6 +287,7 @@ resource "aws_ecs_service" "this" {
   enable_execute_command  = var.is_enable_execute_command
   enable_ecs_managed_tags = true
   launch_type             = var.capacity_provider_strategy == null ? "FARGATE" : null
+  propagate_tags          = var.propagate_tags
 
   network_configuration {
     security_groups = var.security_groups
