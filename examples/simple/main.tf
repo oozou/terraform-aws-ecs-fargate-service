@@ -72,13 +72,10 @@ module "fargate_cluster" {
 module "service_api" {
   source = "../.."
 
-  # Generics
   prefix      = var.prefix
   environment = var.environment
   name        = format("%s-service-api", var.name)
 
-  # IAM Role
-  is_create_iam_role = true
   additional_ecs_task_role_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
   ]
@@ -99,8 +96,7 @@ module "service_api" {
     matcher             = "200,201,204"
   }
 
-  # Logging
-  is_create_cloudwatch_log_group = true
+  is_create_cloudwatch_log_group = false
 
   # Task definition
   service_info = {
@@ -117,8 +113,7 @@ module "service_api" {
     THIS_IS_ENV  = "ENV1",
     THIS_IS_ENVV = "ENVV",
   }
-  # WARNING Secret should not be in plain text
-  secret_variables = {
+  secret_variables = { # WARNING Secret should not be in plain text
     THIS_IS_SECRET       = "1xxxxx",
     THIS_IS_SECRETT      = "2xxxxx",
     THIS_IS_SECRETTT     = "3xxxxx",
