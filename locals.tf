@@ -31,6 +31,12 @@ locals {
   # ECS Service
   ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.this.name}:${data.aws_caller_identity.this.account_id}:cluster/${var.ecs_cluster_name}"
 
+  comparison_operators = {
+    ">=" = "GreaterThanOrEqualToThreshold",
+    ">"  = "GreaterThanThreshold",
+    "<"  = "LessThanThreshold",
+    "<=" = "LessThanOrEqualToThreshold",
+  }
 
   tags = merge(
     {
@@ -73,7 +79,19 @@ locals {
   ] : []
   mount_points = concat(local.mount_points_application_scratch, try(var.service_info.mount_points, []))
 
-  environment_variables = [for key, value in var.environment_variables : { "name" = key, "value" = value }]
+  # Secret and Env
+  secret_variables = [
+    for secret_name, secret_value in var.secret_variables : {
+      name      = secret_name,
+      valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
+    }
+  ]
+  environment_variables = [
+    for key, value in var.environment_variables : {
+      "name"  = key,
+      "value" = value
+    }
+  ]
 
   pre_container_definitions_template = {
     cpu                   = var.service_info.cpu_allocation
@@ -84,7 +102,7 @@ locals {
     name                  = local.name
     service_port          = var.service_info.port
     environment_variables = jsonencode(local.environment_variables)
-    secret_variables      = jsonencode(local.secrets_task_definition)
+    secret_variables      = jsonencode(local.secret_variables)
     entry_point           = jsonencode(var.entry_point)
     mount_points          = jsonencode(local.mount_points)
     command               = jsonencode(var.command)
@@ -104,16 +122,6 @@ locals {
 
   container_definitions     = local.render_container_definitions
   container_definitions_ec2 = templatefile("${path.module}/task-definitions/service-main-container-ec2.json", merge(local.pre_container_definitions_template, local.ec2_template))
-}
-
-/* -------------------------------------------------------------------------- */
-/*                                   Secret                                   */
-/* -------------------------------------------------------------------------- */
-locals {
-  secrets_task_definition = [for secret_name, secret_value in var.secret_variables : {
-    name      = secret_name,
-    valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
-  }]
 }
 
 /* -------------------------------------------------------------------------- */
