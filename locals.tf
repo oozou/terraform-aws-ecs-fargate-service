@@ -130,10 +130,10 @@ locals {
 /*                             New Task Definition                            */
 /* -------------------------------------------------------------------------- */
 locals {
-  container_task_definitions = [for key, configuration in var.container :
+  container_task_definitions = jsonencode([for key, configuration in var.container :
     {
       name        = lookup(configuration, "name", null),
-      image       = lookup(configuration, "container_image", null),
+      image       = lookup(configuration, "image", null),
       networkMode = lookup(configuration, "network_mode", "awsvpc")
       cpu         = lookup(configuration, "cpu", null)
       memory      = lookup(configuration, "memory", null)
@@ -175,5 +175,5 @@ locals {
       entryPoint = lookup(configuration, "entry_point", [])
       command    = lookup(configuration, "command", [])
     }
-  ]
+  ])
 }

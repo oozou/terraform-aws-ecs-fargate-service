@@ -219,8 +219,8 @@ resource "aws_ecs_task_definition" "this" {
   # cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
   # memory                   = local.is_apm_enabled ? var.service_info.mem_allocation + var.apm_config.memory : var.service_info.mem_allocation
   # TODO fix this to support service level cpu mem
-  cpu                = var.container.main_container.port_mappings[0].cpu
-  memory             = var.container.main_container.port_mappings[0].memory
+  cpu                = var.container.main_container.cpu
+  memory             = var.container.main_container.memory
   execution_role_arn = local.task_execution_role_arn
   task_role_arn      = local.task_role_arn
 
