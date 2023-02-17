@@ -88,8 +88,9 @@ resource "aws_lb_target_group" "this" {
 
   name = format("%s-tg", substr("${local.name}", 0, min(29, length(local.name))))
 
-  port                 = var.service_info.port
-  protocol             = var.service_info.port == 443 ? "HTTPS" : "HTTP"
+  # TODO fix this var.container.main_container.port_mappings[0].container_port
+  port                 = var.container.main_container.port_mappings[0].container_port
+  protocol             = var.container.main_container.port_mappings[0].container_port == 443 ? "HTTPS" : "HTTP"
   vpc_id               = var.vpc_id
   target_type          = "ip"
   deregistration_delay = var.target_group_deregistration_delay
@@ -215,12 +216,15 @@ resource "aws_ecs_task_definition" "this" {
   family                   = local.name
   network_mode             = "awsvpc"
   requires_compatibilities = var.capacity_provider_strategy == null ? ["FARGATE"] : ["EC2"]
-  cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
-  memory                   = local.is_apm_enabled ? var.service_info.mem_allocation + var.apm_config.memory : var.service_info.mem_allocation
-  execution_role_arn       = local.task_execution_role_arn
-  task_role_arn            = local.task_role_arn
+  # cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
+  # memory                   = local.is_apm_enabled ? var.service_info.mem_allocation + var.apm_config.memory : var.service_info.mem_allocation
+  # TODO fix this to support service level cpu mem
+  cpu                = var.container.main_container.port_mappings[0].cpu
+  memory             = var.container.main_container.port_mappings[0].memory
+  execution_role_arn = local.task_execution_role_arn
+  task_role_arn      = local.task_role_arn
 
-  container_definitions = var.capacity_provider_strategy == null ? local.container_definitions : local.container_definitions_ec2
+  container_definitions = local.container_task_definitions
 
   dynamic "volume" {
     for_each = local.volumes
@@ -326,7 +330,8 @@ resource "aws_ecs_service" "this" {
     content {
       target_group_arn = aws_lb_target_group.this[0].arn
       container_name   = local.name
-      container_port   = var.service_info.port
+      # TODO fix this
+      container_port = var.container.main_container.port_mappings[0].container_port
     }
   }
 

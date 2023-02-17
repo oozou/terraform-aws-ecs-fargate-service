@@ -174,16 +174,16 @@ variable "environment_variables" {
 /* -------------------------------------------------------------------------- */
 /*                               Task Definition                              */
 /* -------------------------------------------------------------------------- */
-variable "service_info" {
-  description = "The configuration of service"
-  type = object({
-    cpu_allocation = number
-    mem_allocation = number
-    port           = number
-    image          = string
-    mount_points   = list(any)
-  })
-}
+# variable "service_info" {
+#   description = "The configuration of service"
+#   type = object({
+#     cpu_allocation = number
+#     mem_allocation = number
+#     port           = number
+#     image          = string
+#     mount_points   = list(any)
+#   })
+# }
 
 variable "apm_sidecar_ecr_url" {
   description = "[Optional] To enable APM, set Sidecar ECR URL"
