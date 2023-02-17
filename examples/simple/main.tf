@@ -78,7 +78,7 @@ module "service_api" {
 
   prefix      = var.prefix
   environment = var.environment
-  name        = format("%s-service-api", var.name)
+  name        = format("%s-api-service", var.name)
 
   additional_ecs_task_role_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
