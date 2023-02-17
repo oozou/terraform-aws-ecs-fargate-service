@@ -330,3 +330,12 @@ variable "deployment_circuit_breaker" {
     rollback = true
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                NEW TASK DEF                                */
+/* -------------------------------------------------------------------------- */
+variable "container" {
+  description = "TODO write it later"
+  type        = any
+  default     = {}
+}

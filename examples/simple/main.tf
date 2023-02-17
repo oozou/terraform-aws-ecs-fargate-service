@@ -1,6 +1,10 @@
 data "aws_caller_identity" "this" {}
 data "aws_region" "this" {}
 
+locals {
+  name = format("%s-%s-%s", var.prefix, var.environment, var.name)
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                     VPC                                    */
 /* -------------------------------------------------------------------------- */
@@ -69,67 +73,95 @@ module "fargate_cluster" {
 /* -------------------------------------------------------------------------- */
 /*                                   Service                                  */
 /* -------------------------------------------------------------------------- */
-module "service_api" {
-  source = "../.."
+# module "service_api" {
+#   source = "../.."
 
-  prefix      = var.prefix
-  environment = var.environment
-  name        = format("%s-service-api", var.name)
+#   prefix      = var.prefix
+#   environment = var.environment
+#   name        = format("%s-service-api", var.name)
 
-  additional_ecs_task_role_policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
-  ]
+#   additional_ecs_task_role_policy_arns = [
+#     "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
+#   ]
 
-  # ALB
-  is_attach_service_with_lb = true
-  alb_listener_arn          = module.fargate_cluster.alb_listener_http_arn
-  alb_host_header           = null
-  alb_paths                 = ["/*"]
-  alb_priority              = "100"
-  vpc_id                    = module.vpc.vpc_id
-  health_check = {
-    interval            = 20,
-    path                = "/",
-    timeout             = 10,
-    healthy_threshold   = 3,
-    unhealthy_threshold = 3,
-    matcher             = "200,201,204"
+#   # ALB
+#   is_attach_service_with_lb = true
+#   alb_listener_arn          = module.fargate_cluster.alb_listener_http_arn
+#   alb_host_header           = null
+#   alb_paths                 = ["/*"]
+#   alb_priority              = "100"
+#   vpc_id                    = module.vpc.vpc_id
+#   health_check = {
+#     interval            = 20,
+#     path                = "/",
+#     timeout             = 10,
+#     healthy_threshold   = 3,
+#     unhealthy_threshold = 3,
+#     matcher             = "200,201,204"
+#   }
+
+#   is_create_cloudwatch_log_group = false
+
+#   # Task definition
+#   service_info = {
+#     cpu_allocation = 256,
+#     mem_allocation = 512,
+#     port           = 80,
+#     image          = "nginx"
+#     mount_points   = []
+#   }
+#   is_application_scratch_volume_enabled = true
+
+#   # Secret and Env
+#   environment_variables = {
+#     THIS_IS_ENV  = "ENV1",
+#     THIS_IS_ENVV = "ENVV",
+#   }
+#   secret_variables = { # WARNING Secret should not be in plain text
+#     THIS_IS_SECRET       = "1xxxxx",
+#     THIS_IS_SECRETT      = "2xxxxx",
+#     THIS_IS_SECRETTT     = "3xxxxx",
+#     THIS_IS_SECRETTTTT   = "4xxxxx",
+#     THIS_IS_SECRETTTTTT  = "5xxxxx",
+#     THIS_IS_SECRETTTTTTT = "6xxxxx",
+#   }
+
+#   # ECS service
+#   ecs_cluster_name            = module.fargate_cluster.ecs_cluster_name
+#   service_discovery_namespace = module.fargate_cluster.service_discovery_namespace
+#   is_enable_execute_command   = true
+#   application_subnet_ids      = module.vpc.private_subnet_ids
+#   security_groups = [
+#     module.fargate_cluster.ecs_task_security_group_id
+#   ]
+
+#   tags = var.custom_tags
+# }
+
+locals {
+  container = {
+    main_container = {
+      name   = format("%s-api-service", local.name)
+      image  = "nginx"
+      cpu    = 1024
+      memory = 2048
+      port_mappings = [
+        {
+          host_port      = 80
+          container_port = 80
+          protocol       = "tcp"
+        }
+      ]
+      environment_variables = {
+        THIS_IS_ENV  = "ENV1",
+        THIS_IS_ENVV = "ENVV",
+      }
+      secret_variables = { # WARNING Secret should not be in plain text
+        THIS_IS_SECRET  = "1xxxxx",
+        THIS_IS_SECRETT = "2xxxxx",
+      }
+      entry_point = ["sh", "-c"]
+      command     = ["yarn start"]
+    }
   }
-
-  is_create_cloudwatch_log_group = false
-
-  # Task definition
-  service_info = {
-    cpu_allocation = 256,
-    mem_allocation = 512,
-    port           = 80,
-    image          = "nginx"
-    mount_points   = []
-  }
-  is_application_scratch_volume_enabled = true
-
-  # Secret and Env
-  environment_variables = {
-    THIS_IS_ENV  = "ENV1",
-    THIS_IS_ENVV = "ENVV",
-  }
-  secret_variables = { # WARNING Secret should not be in plain text
-    THIS_IS_SECRET       = "1xxxxx",
-    THIS_IS_SECRETT      = "2xxxxx",
-    THIS_IS_SECRETTT     = "3xxxxx",
-    THIS_IS_SECRETTTTT   = "4xxxxx",
-    THIS_IS_SECRETTTTTT  = "5xxxxx",
-    THIS_IS_SECRETTTTTTT = "6xxxxx",
-  }
-
-  # ECS service
-  ecs_cluster_name            = module.fargate_cluster.ecs_cluster_name
-  service_discovery_namespace = module.fargate_cluster.service_discovery_namespace
-  is_enable_execute_command   = true
-  application_subnet_ids      = module.vpc.private_subnet_ids
-  security_groups = [
-    module.fargate_cluster.ecs_task_security_group_id
-  ]
-
-  tags = var.custom_tags
 }

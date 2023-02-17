@@ -67,6 +67,121 @@ locals {
   raise_empty_name  = local.name == "" && (local.empty_prefix || local.empty_environment || local.empty_name) ? file("`var.name_override` or (`var.prefix`, `var.environment` and `var.name is required`) ") : null
 }
 
+# {
+#     name        = local.target_container_name
+#     image       = var.container_image
+#     networkMode = "awsvpc"
+#     cpu         = var.fargate_task_cpu
+#     memory      = var.fargate_task_memory
+#     essential   = true
+
+#     portMappings = [
+#       {
+#         containerPort = element(var.hello_world_container_ports, 0)
+#         hostPort      = element(var.hello_world_container_ports, 0)
+#         protocol      = "tcp"
+#       },
+#     ],
+
+#     mountPoints = [
+#       {
+#         "containerPath" = "/var/scratch",
+#         "sourceVolume"  = "application_scratch"
+#         "readOnly"      = true # Optional
+#       }
+#     ]
+
+#     logConfiguration = {
+#       logDriver = "awslogs"
+#       options = {
+#         "awslogs-group"         = local.awslogs_group
+#         "awslogs-region"        = data.aws_region.current.name
+#         "awslogs-stream-prefix" = local.target_container_name
+#       }
+#     }
+#     environment = [
+#       {
+#         "name" : "PORT1",
+#         "value" : tostring(element(var.hello_world_container_ports, 0))
+#       },
+#       {
+#         "name" : "PORT2",
+#         "value" : tostring(element(var.hello_world_container_ports, 1))
+#       }
+#     ]
+#     secrets = [
+#       {
+#         "name" : "API_GRAB_CLIENT_ID",
+#         "valueFrom" : "xxxx"
+#       },
+#     ]
+#     mountPoints = []
+#     volumesFrom = []
+#     entryPoint  = []
+#     command     = []
+#   }
+/* -------------------------------------------------------------------------- */
+/*                               Task Definition                              */
+/* -------------------------------------------------------------------------- */
+locals {
+  # STEP 1: Declare as default object which has freq used attributes
+  container_task_definitions = [for key, value in var.container : { key = value }]
+
+  default_container = {
+    # name        = local.target_container_name
+    # image       = var.container_image
+    # networkMode = "awsvpc"
+    # cpu         = var.fargate_task_cpu
+    # memory      = var.fargate_task_memory
+    # essential   = true
+
+    # portMappings = [
+    #   {
+    #     containerPort = element(var.hello_world_container_ports, 0)
+    #     hostPort      = element(var.hello_world_container_ports, 0)
+    #     protocol      = "tcp"
+    #   },
+    # ],
+
+    # mountPoints = [
+    #   {
+    #     "containerPath" = "/var/scratch",
+    #     "sourceVolume"  = "application_scratch"
+    #     "readOnly"      = true # Optional
+    #   }
+    # ]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = local.awslogs_group
+        "awslogs-region"        = data.aws_region.current.name
+        "awslogs-stream-prefix" = local.target_container_name
+      }
+    }
+    environment = [
+      {
+        "name" : "PORT1",
+        "value" : tostring(element(var.hello_world_container_ports, 0))
+      },
+      {
+        "name" : "PORT2",
+        "value" : tostring(element(var.hello_world_container_ports, 1))
+      }
+    ]
+    secrets = [
+      {
+        "name" : "API_GRAB_CLIENT_ID",
+        "valueFrom" : "xxxx"
+      },
+    ]
+    mountPoints = []
+    volumesFrom = []
+    entryPoint  = []
+    command     = []
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /*                               Task Definition                              */
 /* -------------------------------------------------------------------------- */
@@ -125,13 +240,60 @@ locals {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                Auto Scaling                                */
+/*                             New Task Definition                            */
 /* -------------------------------------------------------------------------- */
 locals {
-  comparison_operators = {
-    ">=" = "GreaterThanOrEqualToThreshold",
-    ">"  = "GreaterThanThreshold",
-    "<"  = "LessThanThreshold",
-    "<=" = "LessThanOrEqualToThreshold",
-  }
+  container_task_definitions = [for key, configuration in local.container :
+    {
+      name        = lookup(configuration, "name", null),
+      image       = lookup(configuration, "container_image", null),
+      networkMode = lookup(configuration, "network_mode", "awsvpc")
+      cpu         = lookup(configuration, "cpu", null)
+      memory      = lookup(configuration, "memory", null)
+      essential   = lookup(configuration, "essential", true)
+      portMappings = [for config in lookup(configuration, "port_mappings", []) :
+        {
+          containerPort = lookup(config, "container_port", null)
+          hostPort      = lookup(config, "host_port", null)
+          protocol      = lookup(config, "protocol", "tcp")
+        }
+      ]
+      mountPoints = [for config in lookup(configuration, "mount_points", []) :
+        {
+          containerPath = lookup(config, "container_path", null)
+          sourceVolume  = lookup(config, "source_volume", null)
+          readOnly      = lookup(config, "read_only", false)
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          # "awslogs-group"         = local.log_group_name # TODO Uncomment
+          "awslogs-region"        = data.aws_region.this.name
+          "awslogs-stream-prefix" = lookup(configuration, "name", null),
+        }
+      }
+      environment = [for key, value in lookup(configuration, "environment_variables", []) :
+        {
+          name  = key
+          value = value
+        }
+      ]
+      # TODO Replace this check functionality again !!
+      #     [
+      #   for secret_name, secret_value in var.secret_variables : {
+      #     name      = secret_name,
+      #     valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
+      #   }
+      # ]
+      secret = [for key, value in lookup(configuration, "secret_variables", []) :
+        {
+          name      = key
+          valueFrom = value
+        }
+      ]
+      entryPoint = lookup(configuration, "entry_point", [])
+      command    = lookup(configuration, "command", [])
+    }
+  ]
 }
