@@ -67,59 +67,6 @@ locals {
   raise_empty_name  = local.name == "" && (local.empty_prefix || local.empty_environment || local.empty_name) ? file("`var.name_override` or (`var.prefix`, `var.environment` and `var.name is required`) ") : null
 }
 
-# {
-#     name        = local.target_container_name
-#     image       = var.container_image
-#     networkMode = "awsvpc"
-#     cpu         = var.fargate_task_cpu
-#     memory      = var.fargate_task_memory
-#     essential   = true
-
-#     portMappings = [
-#       {
-#         containerPort = element(var.hello_world_container_ports, 0)
-#         hostPort      = element(var.hello_world_container_ports, 0)
-#         protocol      = "tcp"
-#       },
-#     ],
-
-#     mountPoints = [
-#       {
-#         "containerPath" = "/var/scratch",
-#         "sourceVolume"  = "application_scratch"
-#         "readOnly"      = true # Optional
-#       }
-#     ]
-
-#     logConfiguration = {
-#       logDriver = "awslogs"
-#       options = {
-#         "awslogs-group"         = local.awslogs_group
-#         "awslogs-region"        = data.aws_region.current.name
-#         "awslogs-stream-prefix" = local.target_container_name
-#       }
-#     }
-#     environment = [
-#       {
-#         "name" : "PORT1",
-#         "value" : tostring(element(var.hello_world_container_ports, 0))
-#       },
-#       {
-#         "name" : "PORT2",
-#         "value" : tostring(element(var.hello_world_container_ports, 1))
-#       }
-#     ]
-#     secrets = [
-#       {
-#         "name" : "API_GRAB_CLIENT_ID",
-#         "valueFrom" : "xxxx"
-#       },
-#     ]
-#     mountPoints = []
-#     volumesFrom = []
-#     entryPoint  = []
-#     command     = []
-#   }
 /* -------------------------------------------------------------------------- */
 /*                               Task Definition                              */
 /* -------------------------------------------------------------------------- */
