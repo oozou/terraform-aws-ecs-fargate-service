@@ -71,119 +71,57 @@ locals {
 /*                               Task Definition                              */
 /* -------------------------------------------------------------------------- */
 locals {
-  # STEP 1: Declare as default object which has freq used attributes
-  container_task_definitions = [for key, value in var.container : { key = value }]
+  # mount_points_application_scratch = var.is_application_scratch_volume_enabled ? [
+  #   {
+  #     "containerPath" : "/var/scratch",
+  #     "sourceVolume" : "application_scratch"
+  #   }
+  # ] : []
+  # mount_points = concat(local.mount_points_application_scratch, try(var.service_info.mount_points, []))
 
-  default_container = {
-    # name        = local.target_container_name
-    # image       = var.container_image
-    # networkMode = "awsvpc"
-    # cpu         = var.fargate_task_cpu
-    # memory      = var.fargate_task_memory
-    # essential   = true
+  # # Secret and Env
+  # secret_variables = [
+  #   for secret_name, secret_value in var.secret_variables : {
+  #     name      = secret_name,
+  #     valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
+  #   }
+  # ]
+  # environment_variables = [
+  #   for key, value in var.environment_variables : {
+  #     "name"  = key,
+  #     "value" = value
+  #   }
+  # ]
 
-    # portMappings = [
-    #   {
-    #     containerPort = element(var.hello_world_container_ports, 0)
-    #     hostPort      = element(var.hello_world_container_ports, 0)
-    #     protocol      = "tcp"
-    #   },
-    # ],
+  # pre_container_definitions_template = {
+  #   cpu                   = var.service_info.cpu_allocation
+  #   service_image         = var.service_info.image
+  #   memory                = var.service_info.mem_allocation
+  #   log_group_name        = local.log_group_name
+  #   region                = data.aws_region.this.name
+  #   name                  = local.name
+  #   service_port          = var.service_info.port
+  #   environment_variables = jsonencode(local.environment_variables)
+  #   secret_variables      = jsonencode(local.secret_variables)
+  #   entry_point           = jsonencode(var.entry_point)
+  #   mount_points          = jsonencode(local.mount_points)
+  #   command               = jsonencode(var.command)
+  # }
+  # apm_template = {
+  #   apm_cpu             = var.apm_config.cpu
+  #   apm_sidecar_ecr_url = var.apm_sidecar_ecr_url
+  #   apm_memory          = var.apm_config.memory
+  #   apm_name            = local.apm_name
+  #   apm_service_port    = var.apm_config.service_port
+  # }
+  # ec2_template = {
+  #   unix_max_connection = tostring(var.unix_max_connection)
+  # }
+  # container_definitions_template = local.is_apm_enabled ? merge(local.pre_container_definitions_template, local.apm_template) : local.pre_container_definitions_template
+  # render_container_definitions   = local.is_apm_enabled ? templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", local.container_definitions_template) : templatefile("${path.module}/task-definitions/service-main-container.json", local.container_definitions_template)
 
-    # mountPoints = [
-    #   {
-    #     "containerPath" = "/var/scratch",
-    #     "sourceVolume"  = "application_scratch"
-    #     "readOnly"      = true # Optional
-    #   }
-    # ]
-
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = local.awslogs_group
-        "awslogs-region"        = data.aws_region.current.name
-        "awslogs-stream-prefix" = local.target_container_name
-      }
-    }
-    environment = [
-      {
-        "name" : "PORT1",
-        "value" : tostring(element(var.hello_world_container_ports, 0))
-      },
-      {
-        "name" : "PORT2",
-        "value" : tostring(element(var.hello_world_container_ports, 1))
-      }
-    ]
-    secrets = [
-      {
-        "name" : "API_GRAB_CLIENT_ID",
-        "valueFrom" : "xxxx"
-      },
-    ]
-    mountPoints = []
-    volumesFrom = []
-    entryPoint  = []
-    command     = []
-  }
-}
-
-/* -------------------------------------------------------------------------- */
-/*                               Task Definition                              */
-/* -------------------------------------------------------------------------- */
-locals {
-  mount_points_application_scratch = var.is_application_scratch_volume_enabled ? [
-    {
-      "containerPath" : "/var/scratch",
-      "sourceVolume" : "application_scratch"
-    }
-  ] : []
-  mount_points = concat(local.mount_points_application_scratch, try(var.service_info.mount_points, []))
-
-  # Secret and Env
-  secret_variables = [
-    for secret_name, secret_value in var.secret_variables : {
-      name      = secret_name,
-      valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
-    }
-  ]
-  environment_variables = [
-    for key, value in var.environment_variables : {
-      "name"  = key,
-      "value" = value
-    }
-  ]
-
-  pre_container_definitions_template = {
-    cpu                   = var.service_info.cpu_allocation
-    service_image         = var.service_info.image
-    memory                = var.service_info.mem_allocation
-    log_group_name        = local.log_group_name
-    region                = data.aws_region.this.name
-    name                  = local.name
-    service_port          = var.service_info.port
-    environment_variables = jsonencode(local.environment_variables)
-    secret_variables      = jsonencode(local.secret_variables)
-    entry_point           = jsonencode(var.entry_point)
-    mount_points          = jsonencode(local.mount_points)
-    command               = jsonencode(var.command)
-  }
-  apm_template = {
-    apm_cpu             = var.apm_config.cpu
-    apm_sidecar_ecr_url = var.apm_sidecar_ecr_url
-    apm_memory          = var.apm_config.memory
-    apm_name            = local.apm_name
-    apm_service_port    = var.apm_config.service_port
-  }
-  ec2_template = {
-    unix_max_connection = tostring(var.unix_max_connection)
-  }
-  container_definitions_template = local.is_apm_enabled ? merge(local.pre_container_definitions_template, local.apm_template) : local.pre_container_definitions_template
-  render_container_definitions   = local.is_apm_enabled ? templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", local.container_definitions_template) : templatefile("${path.module}/task-definitions/service-main-container.json", local.container_definitions_template)
-
-  container_definitions     = local.render_container_definitions
-  container_definitions_ec2 = templatefile("${path.module}/task-definitions/service-main-container-ec2.json", merge(local.pre_container_definitions_template, local.ec2_template))
+  # container_definitions     = local.render_container_definitions
+  # container_definitions_ec2 = templatefile("${path.module}/task-definitions/service-main-container-ec2.json", merge(local.pre_container_definitions_template, local.ec2_template))
 }
 
 /* -------------------------------------------------------------------------- */
@@ -215,7 +153,7 @@ locals {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          # "awslogs-group"         = local.log_group_name # TODO Uncomment
+          "awslogs-group"         = local.log_group_name
           "awslogs-region"        = data.aws_region.this.name
           "awslogs-stream-prefix" = lookup(configuration, "name", null),
         }
@@ -226,17 +164,10 @@ locals {
           value = value
         }
       ]
-      # TODO Replace this check functionality again !!
-      #     [
-      #   for secret_name, secret_value in var.secret_variables : {
-      #     name      = secret_name,
-      #     valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
-      #   }
-      # ]
-      secret = [for key, value in lookup(configuration, "secret_variables", []) :
+      secret = [for secret_name, secret_value in lookup(configuration, "secret_variables", []) :
         {
-          name      = key
-          valueFrom = value
+          name      = secret_name
+          valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
         }
       ]
       entryPoint = lookup(configuration, "entry_point", [])
