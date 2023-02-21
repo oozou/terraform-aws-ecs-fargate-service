@@ -114,12 +114,12 @@ locals {
           value = value
         }
       ]
-      # secret = [for secret_name, secret_value in lookup(configuration, "secret_variables", []) :
-      #   {
-      #     name      = secret_name
-      #     valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
-      #   }
-      # ]
+      secret = [for secret_name, secret_value in lookup(configuration, "secret_variables", []) :
+        {
+          name      = secret_name
+          valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.this[key].arn, secret_name)
+        }
+      ]
       entryPoint   = lookup(configuration, "entry_point", [])
       command      = lookup(configuration, "command", [])
       mount_points = concat(local.mount_points_application_scratch, lookup(configuration, "mount_points", []))

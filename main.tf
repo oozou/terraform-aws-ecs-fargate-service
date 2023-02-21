@@ -224,26 +224,27 @@ resource "aws_secretsmanager_secret_version" "this" {
   secret_string = jsonencode(lookup(each.value, "secret_variables", {}))
 }
 
-# # We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
-# # inject them as environment variables in the service
-# resource "aws_iam_role_policy" "task_execution_secrets" {
-#   count = var.is_create_iam_role && length(var.secret_variables) > 0 ? 1 : 0
+# We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
+# inject them as environment variables in the service
+resource "aws_iam_role_policy" "task_execution_role_access_secret" {
+  # count    = var.is_create_iam_role && length(var.secret_variables) > 0 ? 1 : 0
+  for_each = { for key, value in var.container : key => value if try(value.secret_variables, null) != null }
 
-#   name = "${local.name}-ecs-task-execution-secrets"
-#   role = local.task_execution_role_id
+  name = "${each.value.name}-ecs-task-execution-secrets"
+  role = local.task_execution_role_id
 
-#   policy = <<EOF
-# {
-#     "Statement": [
-#       {
-#         "Effect": "Allow",
-#         "Action": ["secretsmanager:GetSecretValue"],
-#         "Resource": ${jsonencode(format("%s/*", split("/", aws_secretsmanager_secret.service_secrets.arn)[0]))}
-#       }
-#     ]
-# }
-# EOF
-# }
+  policy = <<EOF
+{
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": ["secretsmanager:GetSecretValue"],
+        "Resource": ${jsonencode(format("%s/*", split("/", aws_secretsmanager_secret.this[each.key].arn)[0]))}
+      }
+    ]
+}
+EOF
+}
 
 /* -------------------------------------------------------------------------- */
 /*                             ECS Task Definition                            */

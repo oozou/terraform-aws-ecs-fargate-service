@@ -101,6 +101,14 @@ module "service_api" {
   alb_paths                 = ["/*"]
   alb_priority              = "100"
   vpc_id                    = module.vpc.vpc_id
+  health_check = {
+    interval            = 20,
+    path                = "",
+    timeout             = 10,
+    healthy_threshold   = 3,
+    unhealthy_threshold = 3,
+    matcher             = "200,201,204"
+  }
 
   is_create_cloudwatch_log_group = true
 
@@ -129,36 +137,28 @@ module "service_api" {
       }
       entry_point = []
       command     = []
-      # health_check = {
-      #   interval            = 20,
-      #   path                = "",
-      #   timeout             = 10,
-      #   healthy_threshold   = 3,
-      #   unhealthy_threshold = 3,
-      #   matcher             = "200,201,204"
-      # }
     }
-    # side_container = {
-    #   name   = format("%s-nginx", local.name)
-    #   image  = "tutum/dnsutils"
-    #   cpu    = 128
-    #   memory = 256
-    #   port_mappings = [
-    #     {
-    #       host_port      = 443
-    #       container_port = 443
-    #       protocol       = "tcp"
-    #     },
-    #   ]
-    #   environment_variables = {
-    #     XXXX  = "XXXX",
-    #     XXXXX = "XXXXX",
-    #   }
-    #   secret_variables = { # WARNING Secret should not be in plain text
-    #     AA = "AAAAA",
-    #     A  = "AAA",
-    #   }
-    # }
+    side_container = {
+      name   = format("%s-nginx", local.name)
+      image  = "tutum/dnsutils"
+      cpu    = 128
+      memory = 256
+      port_mappings = [
+        {
+          host_port      = 443
+          container_port = 443
+          protocol       = "tcp"
+        },
+      ]
+      environment_variables = {
+        XXXX  = "XXXX",
+        XXXXX = "XXXXX",
+      }
+      secret_variables = { # WARNING Secret should not be in plain text
+        AA = "AAAAA",
+        A  = "AAA",
+      }
+    }
   }
 
   tags = var.custom_tags
