@@ -157,6 +157,21 @@ variable "custom_header_token" {
 }
 
 /* -------------------------------------------------------------------------- */
+/*                                Secret & Env                                */
+/* -------------------------------------------------------------------------- */
+variable "secret_variables" {
+  description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
+  type        = map(map(any))
+  default     = {}
+}
+
+variable "environment_variables" {
+  description = "Map of environment varaibles ex. { RDS_ENDPOINT = \"admin@rds@123\"}"
+  type        = map(map(any))
+  default     = {}
+}
+
+/* -------------------------------------------------------------------------- */
 /*                               Task Definition                              */
 /* -------------------------------------------------------------------------- */
 variable "task_cpu" {

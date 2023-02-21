@@ -160,6 +160,18 @@ module "service_api" {
       }
     }
   }
+  environment_variables = {
+    main_container = {
+      THIS_IS_ENV  = "ENV1",
+      THIS_IS_ENVV = "ENVV",
+    }
+  }
+  secret_variables = {
+    main_container = {
+      THIS_IS_SECRET  = "1xxxxx",
+      THIS_IS_SECRETT = "2xxxxx",
+    }
+  }
 
   tags = var.custom_tags
 }
