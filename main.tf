@@ -83,26 +83,26 @@ resource "aws_cloudwatch_log_group" "this" {
 /*                                Load Balancer                               */
 /* -------------------------------------------------------------------------- */
 resource "aws_lb_target_group" "this" {
-  for_each = { for key, value in var.container : key => value if try(value.is_attach_to_lb, false) }
+  count = local.is_create_target_group ? 1 : 0
 
-  name = format("%s-tg", substr(lookup(each.value, "name", each.key), 0, min(29, length(lookup(each.value, "name", each.key)))))
+  name = format("%s-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name))))
 
-  port                 = lookup(each.value, "port_mappings", null)[0].container_port
-  protocol             = lookup(each.value, "port_mappings", null)[0].container_port == 443 ? "HTTPS" : "HTTP"
+  port                 = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port
+  protocol             = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port == 443 ? "HTTPS" : "HTTP"
   vpc_id               = var.vpc_id
   target_type          = "ip"
   deregistration_delay = var.target_group_deregistration_delay
 
   health_check {
-    interval            = lookup(each.value.health_check, "interval", null)
-    path                = lookup(each.value.health_check, "path", null)
-    timeout             = lookup(each.value.health_check, "timeout", null)
-    healthy_threshold   = lookup(each.value.health_check, "healthy_threshold", null)
-    unhealthy_threshold = lookup(each.value.health_check, "unhealthy_threshold", null)
-    matcher             = lookup(each.value.health_check, "matcher", null)
+    interval            = lookup(local.container_target_group_object, "health_check.interval", null)
+    path                = lookup(local.container_target_group_object, "health_check.path", null)
+    timeout             = lookup(local.container_target_group_object, "health_check.timeout", null)
+    healthy_threshold   = lookup(local.container_target_group_object, "health_check.healthy_threshold", null)
+    unhealthy_threshold = lookup(local.container_target_group_object, "health_check.unhealthy_threshold", null)
+    matcher             = lookup(local.container_target_group_object, "health_check.matcher", null)
   }
 
-  tags = merge(local.tags, { "Name" = format("%s-tg", substr(lookup(each.value, "name", each.key), 0, min(29, length(lookup(each.value, "name", each.key))))) })
+  tags = merge(local.tags, { "Name" = format("%s-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name)))) })
 }
 /* ------------------------------ Listener Rule ----------------------------- */
 resource "aws_lb_listener_rule" "this" {
@@ -323,18 +323,8 @@ resource "aws_ecs_service" "this" {
     rollback = var.deployment_circuit_breaker.rollback
   }
 
-  dynamic "load_balancer" {
-    for_each = var.is_attach_service_with_lb ? [true] : []
-    content {
-      target_group_arn = aws_lb_target_group.this[0].arn
-      container_name   = local.name
-      # TODO fix this
-      container_port = var.container.main_container.port_mappings[0].container_port
-    }
-  }
-
   # dynamic "load_balancer" {
-  #   for_each = var.
+  #   for_each = var.is_attach_service_with_lb ? [true] : []
   #   content {
   #     target_group_arn = aws_lb_target_group.this[0].arn
   #     container_name   = local.name
@@ -342,6 +332,17 @@ resource "aws_ecs_service" "this" {
   #     container_port = var.container.main_container.port_mappings[0].container_port
   #   }
   # }
+
+  dynamic "load_balancer" {
+    for_each = local.is_create_target_group ? [true] : []
+
+    content {
+      target_group_arn = aws_lb_target_group.this[0].arn
+      container_name   = local.name
+      # TODO fix this
+      container_port = local.container_target_group_object.port_mappings[0].container_port
+    }
+  }
 
   lifecycle {
     ignore_changes = [

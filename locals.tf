@@ -26,6 +26,10 @@ locals {
   # ECS Service
   ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.this.name}:${data.aws_caller_identity.this.account_id}:cluster/${var.ecs_cluster_name}"
 
+  container_attahced_to_alb_keys = [for key, container in var.container : key if try(container.is_attach_to_lb, false) == true]
+  is_create_target_group         = length(local.container_attahced_to_alb_keys) == 1
+  container_target_group_object  = var.container[local.container_attahced_to_alb_keys[0]]
+
   comparison_operators = {
     ">=" = "GreaterThanOrEqualToThreshold",
     ">"  = "GreaterThanThreshold",
@@ -54,8 +58,7 @@ locals {
   raise_alb_listener_arn_empty = var.is_attach_service_with_lb && length(var.alb_listener_arn) == 0 ? file("Variable `alb_listener_arn` is required when `is_attach_service_with_lb` is true") : "pass"
   raise_enable_exec_on_cp      = var.is_enable_execute_command && var.capacity_provider_strategy != null ? file("Canot set `is_enable_execute_command` with `capacity_provider_strategy`. Please enabled SSM at EC2 instance profile instead") : "pass"
 
-  container_attahced_to_alb_names        = [for key, container in var.container : container.name if try(container.is_attach_to_lb, false) == true]
-  raise_multiple_container_attach_to_alb = length(local.container_attahced_to_alb_names) > 1 ? file("var.container[*].is_attach_to_lb allow to be true only 1 key; found ${jsonencode(local.container_attahced_to_alb_names)}") : null
+  raise_multiple_container_attach_to_alb = length(local.container_attahced_to_alb_keys) > 1 ? file("var.container[*].is_attach_to_lb allow to be true only 1 key; found ${jsonencode(local.container_attahced_to_alb_keys)}") : null
 
   empty_prefix      = var.prefix == "" ? true : false
   empty_environment = var.environment == "" ? true : false
