@@ -230,7 +230,7 @@ resource "aws_secretsmanager_secret_version" "this" {
 # inject them as environment variables in the service
 resource "aws_iam_role_policy" "task_execution_role_access_secret" {
   # count    = var.is_create_iam_role && length(var.secret_variables) > 0 ? 1 : 0
-  for_each = { for key, value in var.container : key => value if try(value.secret_variables, null) != null }
+  for_each = var.container
 
   name = "${each.value.name}-ecs-task-execution-secrets"
   role = local.task_execution_role_id
