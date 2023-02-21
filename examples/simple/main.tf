@@ -119,14 +119,14 @@ module "service_api" {
       }
       entry_point = []
       command     = []
-      health_check = {
-        interval            = 20,
-        path                = "",
-        timeout             = 10,
-        healthy_threshold   = 3,
-        unhealthy_threshold = 3,
-        matcher             = "200,201,204"
-      }
+      # health_check = {
+      #   interval            = 20,
+      #   path                = "",
+      #   timeout             = 10,
+      #   healthy_threshold   = 3,
+      #   unhealthy_threshold = 3,
+      #   matcher             = "200,201,204"
+      # }
     }
     side_container = {
       name   = format("%s-nginx", local.name)
