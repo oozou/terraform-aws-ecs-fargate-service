@@ -95,10 +95,10 @@ variable "cloudwatch_log_kms_key_id" {
 /*                                LoadBalancer                                */
 /* -------------------------------------------------------------------------- */
 /* ----------------------------- LB Target Group ---------------------------- */
-variable "is_attach_service_with_lb" {
-  description = "Attach the container to the public ALB? (true/false)"
-  type        = bool
-}
+# variable "is_attach_service_with_lb" {
+#   description = "Attach the container to the public ALB? (true/false)"
+#   type        = bool
+# }
 
 variable "target_group_deregistration_delay" {
   description = "(Optional) Amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused. The range is 0-3600 seconds. The default value is 300 seconds."
