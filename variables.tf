@@ -159,16 +159,16 @@ variable "custom_header_token" {
 /* -------------------------------------------------------------------------- */
 /*                               Task Definition                              */
 /* -------------------------------------------------------------------------- */
-# variable "service_info" {
-#   description = "The configuration of service"
-#   type = object({
-#     cpu_allocation = number
-#     mem_allocation = number
-#     port           = number
-#     image          = string
-#     mount_points   = list(any)
-#   })
-# }
+variable "task_cpu" {
+  description = "(Require): cpu for task level"
+  type        = number
+}
+
+variable "task_memory" {
+  description = "(Require): memory for task level"
+  type        = number
+}
+
 
 variable "is_application_scratch_volume_enabled" {
   description = "To enabled the temporary storage for the service"

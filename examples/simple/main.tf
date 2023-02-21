@@ -80,6 +80,16 @@ module "service_api" {
   environment = var.environment
   name        = format("%s-api-service", var.name)
 
+  # ECS service
+  task_cpu                    = 1024
+  task_memory                 = 2048
+  ecs_cluster_name            = module.fargate_cluster.ecs_cluster_name
+  service_discovery_namespace = module.fargate_cluster.service_discovery_namespace
+  is_enable_execute_command   = true
+  application_subnet_ids      = module.vpc.private_subnet_ids
+  security_groups = [
+    module.fargate_cluster.ecs_task_security_group_id
+  ]
   additional_ecs_task_role_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
   ]
@@ -150,15 +160,6 @@ module "service_api" {
     #   }
     # }
   }
-
-  # ECS service
-  ecs_cluster_name            = module.fargate_cluster.ecs_cluster_name
-  service_discovery_namespace = module.fargate_cluster.service_discovery_namespace
-  is_enable_execute_command   = true
-  application_subnet_ids      = module.vpc.private_subnet_ids
-  security_groups = [
-    module.fargate_cluster.ecs_task_security_group_id
-  ]
 
   tags = var.custom_tags
 }

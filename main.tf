@@ -214,13 +214,10 @@ resource "aws_ecs_task_definition" "this" {
   family                   = local.name
   network_mode             = "awsvpc"
   requires_compatibilities = var.capacity_provider_strategy == null ? ["FARGATE"] : ["EC2"]
-  # cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
-  # memory                   = local.is_apm_enabled ? var.service_info.mem_allocation + var.apm_config.memory : var.service_info.mem_allocation
-  # TODO fix this to support service level cpu mem
-  cpu                = 1024
-  memory             = 2048
-  execution_role_arn = local.task_execution_role_arn
-  task_role_arn      = local.task_role_arn
+  cpu                      = var.task_cpu
+  memory                   = var.task_memory
+  execution_role_arn       = local.task_execution_role_arn
+  task_role_arn            = local.task_role_arn
 
   container_definitions = local.container_task_definitions
 
