@@ -108,13 +108,13 @@ locals {
           "awslogs-stream-prefix" = lookup(configuration, "name", null),
         }
       }
-      environment = [for key, value in var.environment_variables :
+      environment = [for key, value in try(var.environment_variables[key], {}) :
         {
           name  = key
           value = value
         }
       ]
-      secrets = [for secret_name, secret_value in var.secret_variables :
+      secrets = [for secret_name, secret_value in try(var.secret_variables[key], {}) :
         {
           name      = secret_name
           valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.this[key].arn, secret_name)
