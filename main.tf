@@ -216,7 +216,7 @@ resource "aws_secretsmanager_secret" "this" {
   description = "Secret for service ${local.name}"
   kms_key_id  = module.secret_kms_key.key_arn
 
-  tags = merge({ Name = "${local.name}" }, local.tags)
+  tags = merge({ Name = local.name }, local.tags)
 }
 
 resource "aws_secretsmanager_secret_version" "this" {
@@ -224,7 +224,6 @@ resource "aws_secretsmanager_secret_version" "this" {
 
   secret_id     = aws_secretsmanager_secret.this[each.key].id
   secret_string = jsonencode(try(var.secret_variables[each.key], {}))
-  # secret_string = jsonencode(lookup(each.value, "secret_variables", {}))
 }
 
 # We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
