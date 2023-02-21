@@ -28,7 +28,7 @@ locals {
 
   container_attahced_to_alb_keys = [for key, container in var.container : key if try(container.is_attach_to_lb, false) == true]
   is_create_target_group         = length(local.container_attahced_to_alb_keys) == 1
-  container_target_group_object  = var.container[local.container_attahced_to_alb_keys[0]]
+  container_target_group_object  = try(var.container[local.container_attahced_to_alb_keys[0]], {})
 
   comparison_operators = {
     ">=" = "GreaterThanOrEqualToThreshold",

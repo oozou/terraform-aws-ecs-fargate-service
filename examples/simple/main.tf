@@ -128,27 +128,27 @@ module "service_api" {
       #   matcher             = "200,201,204"
       # }
     }
-    side_container = {
-      name   = format("%s-nginx", local.name)
-      image  = "tutum/dnsutils"
-      cpu    = 128
-      memory = 256
-      port_mappings = [
-        {
-          host_port      = 443
-          container_port = 443
-          protocol       = "tcp"
-        },
-      ]
-      environment_variables = {
-        XXXX  = "XXXX",
-        XXXXX = "XXXXX",
-      }
-      secret_variables = { # WARNING Secret should not be in plain text
-        AA = "AAAAA",
-        A  = "AAA",
-      }
-    }
+    # side_container = {
+    #   name   = format("%s-nginx", local.name)
+    #   image  = "tutum/dnsutils"
+    #   cpu    = 128
+    #   memory = 256
+    #   port_mappings = [
+    #     {
+    #       host_port      = 443
+    #       container_port = 443
+    #       protocol       = "tcp"
+    #     },
+    #   ]
+    #   environment_variables = {
+    #     XXXX  = "XXXX",
+    #     XXXXX = "XXXXX",
+    #   }
+    #   secret_variables = { # WARNING Secret should not be in plain text
+    #     AA = "AAAAA",
+    #     A  = "AAA",
+    #   }
+    # }
   }
 
   # ECS service

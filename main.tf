@@ -106,7 +106,7 @@ resource "aws_lb_target_group" "this" {
 }
 /* ------------------------------ Listener Rule ----------------------------- */
 resource "aws_lb_listener_rule" "this" {
-  count = var.is_attach_service_with_lb ? 1 : 0
+  count = local.is_create_target_group ? 1 : 0
 
   listener_arn = var.alb_listener_arn
   priority     = var.alb_priority
@@ -323,24 +323,13 @@ resource "aws_ecs_service" "this" {
     rollback = var.deployment_circuit_breaker.rollback
   }
 
-  # dynamic "load_balancer" {
-  #   for_each = var.is_attach_service_with_lb ? [true] : []
-  #   content {
-  #     target_group_arn = aws_lb_target_group.this[0].arn
-  #     container_name   = local.name
-  #     # TODO fix this
-  #     container_port = var.container.main_container.port_mappings[0].container_port
-  #   }
-  # }
-
   dynamic "load_balancer" {
     for_each = local.is_create_target_group ? [true] : []
 
     content {
       target_group_arn = aws_lb_target_group.this[0].arn
       container_name   = local.name
-      # TODO fix this
-      container_port = local.container_target_group_object.port_mappings[0].container_port
+      container_port   = local.container_target_group_object.port_mappings[0].container_port
     }
   }
 
