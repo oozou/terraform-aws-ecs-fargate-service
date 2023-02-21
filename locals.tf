@@ -60,8 +60,10 @@ locals {
   # raise_service_port_empty     = var.is_attach_service_with_lb && var.service_info.port == null ? file("Variable `service_info.port` is required when `is_attach_service_with_lb` is true") : "pass"
   raise_health_check_empty     = var.is_attach_service_with_lb && var.health_check == {} ? file("Variable `health_check` is required when `is_attach_service_with_lb` is true") : "pass"
   raise_alb_listener_arn_empty = var.is_attach_service_with_lb && length(var.alb_listener_arn) == 0 ? file("Variable `alb_listener_arn` is required when `is_attach_service_with_lb` is true") : "pass"
+  raise_enable_exec_on_cp      = var.is_enable_execute_command && var.capacity_provider_strategy != null ? file("Canot set `is_enable_execute_command` with `capacity_provider_strategy`. Please enabled SSM at EC2 instance profile instead") : "pass"
 
-  raise_enable_exec_on_cp = var.is_enable_execute_command && var.capacity_provider_strategy != null ? file("Canot set `is_enable_execute_command` with `capacity_provider_strategy`. Please enabled SSM at EC2 instance profile instead") : "pass"
+  container_attahced_to_alb_names        = [for key, container in var.container : container.name if try(container.is_attach_to_lb, false) == true]
+  raise_multiple_container_attach_to_alb = length(local.container_attahced_to_alb_names) > 1 ? file("var.container[*].is_attach_to_lb allow to be true only 1 key; found ${jsonencode(local.container_attahced_to_alb_names)}") : null
 
   empty_prefix      = var.prefix == "" ? true : false
   empty_environment = var.environment == "" ? true : false
@@ -127,4 +129,9 @@ locals {
       mount_points = concat(local.mount_points_application_scratch, lookup(configuration, "mount_points", []))
     }
   ])
+  debug = [for key, configuration in var.container : key]
+}
+
+output "debug" {
+  value = local.raise_multiple_container_attach_to_alb
 }

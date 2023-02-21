@@ -85,31 +85,25 @@ module "service_api" {
   ]
 
   # ALB
-  is_attach_service_with_lb = true
+  is_attach_service_with_lb = false
   alb_listener_arn          = module.fargate_cluster.alb_listener_http_arn
   alb_host_header           = null
   alb_paths                 = ["/*"]
   alb_priority              = "100"
   vpc_id                    = module.vpc.vpc_id
-  health_check = {
-    interval            = 20,
-    path                = "/",
-    timeout             = 10,
-    healthy_threshold   = 3,
-    unhealthy_threshold = 3,
-    matcher             = "200,201,204"
-  }
 
   is_create_cloudwatch_log_group = true
 
   container = {
     main_container = {
-      name   = format("%s-api-service", local.name)
-      image  = "nginx"
-      cpu    = 1024
-      memory = 2048
+      name            = format("%s-api-service", local.name)
+      image           = "nginx"
+      cpu             = 128
+      memory          = 256
+      is_attach_to_lb = true
       port_mappings = [
         {
+          # If a container has multiple ports, index 0 will be used for target group
           host_port      = 80
           container_port = 80
           protocol       = "tcp"
@@ -123,8 +117,37 @@ module "service_api" {
         THIS_IS_SECRET  = "1xxxxx",
         THIS_IS_SECRETT = "2xxxxx",
       }
-      entry_point = ["sh", "-c"]
-      command     = ["yarn start"]
+      entry_point = []
+      command     = []
+      health_check = {
+        interval            = 20,
+        path                = "",
+        timeout             = 10,
+        healthy_threshold   = 3,
+        unhealthy_threshold = 3,
+        matcher             = "200,201,204"
+      }
+    }
+    side_container = {
+      name   = format("%s-nginx", local.name)
+      image  = "tutum/dnsutils"
+      cpu    = 128
+      memory = 256
+      port_mappings = [
+        {
+          host_port      = 443
+          container_port = 443
+          protocol       = "tcp"
+        },
+      ]
+      environment_variables = {
+        XXXX  = "XXXX",
+        XXXXX = "XXXXX",
+      }
+      secret_variables = { # WARNING Secret should not be in plain text
+        AA = "AAAAA",
+        A  = "AAA",
+      }
     }
   }
 
@@ -138,4 +161,8 @@ module "service_api" {
   ]
 
   tags = var.custom_tags
+}
+
+output "debug" {
+  value = module.service_api.debug
 }

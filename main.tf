@@ -106,6 +106,29 @@ resource "aws_lb_target_group" "this" {
 
   tags = merge(local.tags, { "Name" = format("%s-tg", local.name) })
 }
+
+resource "aws_lb_target_group" "thoese" {
+  for_each = { for key, value in var.container : key => value if try(value.is_attach_to_lb, false) }
+
+  name = format("%s-tg", substr("${lookup(each.value, "name", each.key)}", 0, min(29, length(lookup(each.value, "name", each.key)))))
+
+  port                 = lookup(each.value, "port_mappings", null)[0].container_port
+  protocol             = lookup(each.value, "port_mappings", null)[0].container_port == 443 ? "HTTPS" : "HTTP"
+  vpc_id               = var.vpc_id
+  target_type          = "ip"
+  deregistration_delay = var.target_group_deregistration_delay
+
+  health_check {
+    interval            = lookup(each.value.health_check, "interval", null)
+    path                = lookup(each.value.health_check, "path", null)
+    timeout             = lookup(each.value.health_check, "timeout", null)
+    healthy_threshold   = lookup(each.value.health_check, "healthy_threshold", null)
+    unhealthy_threshold = lookup(each.value.health_check, "unhealthy_threshold", null)
+    matcher             = lookup(each.value.health_check, "matcher", null)
+  }
+
+  tags = merge(local.tags, { "Name" = format("%s-tg", substr("${lookup(each.value, "name", each.key)}", 0, min(29, length(lookup(each.value, "name", each.key))))) })
+}
 /* ------------------------------ Listener Rule ----------------------------- */
 resource "aws_lb_listener_rule" "this" {
   count = var.is_attach_service_with_lb ? 1 : 0
@@ -219,8 +242,8 @@ resource "aws_ecs_task_definition" "this" {
   # cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
   # memory                   = local.is_apm_enabled ? var.service_info.mem_allocation + var.apm_config.memory : var.service_info.mem_allocation
   # TODO fix this to support service level cpu mem
-  cpu                = var.container.main_container.cpu
-  memory             = var.container.main_container.memory
+  cpu                = 1024
+  memory             = 2048
   execution_role_arn = local.task_execution_role_arn
   task_role_arn      = local.task_role_arn
 
@@ -334,6 +357,16 @@ resource "aws_ecs_service" "this" {
       container_port = var.container.main_container.port_mappings[0].container_port
     }
   }
+
+  # dynamic "load_balancer" {
+  #   for_each = var.
+  #   content {
+  #     target_group_arn = aws_lb_target_group.this[0].arn
+  #     container_name   = local.name
+  #     # TODO fix this
+  #     container_port = var.container.main_container.port_mappings[0].container_port
+  #   }
+  # }
 
   lifecycle {
     ignore_changes = [
