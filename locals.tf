@@ -73,63 +73,13 @@ locals {
 /*                               Task Definition                              */
 /* -------------------------------------------------------------------------- */
 locals {
-  # mount_points_application_scratch = var.is_application_scratch_volume_enabled ? [
-  #   {
-  #     "containerPath" : "/var/scratch",
-  #     "sourceVolume" : "application_scratch"
-  #   }
-  # ] : []
-  # mount_points = concat(local.mount_points_application_scratch, try(var.service_info.mount_points, []))
+  mount_points_application_scratch = var.is_application_scratch_volume_enabled ? [
+    {
+      "containerPath" : "/var/scratch",
+      "sourceVolume" : "application_scratch"
+    }
+  ] : []
 
-  # # Secret and Env
-  # secret_variables = [
-  #   for secret_name, secret_value in var.secret_variables : {
-  #     name      = secret_name,
-  #     valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
-  #   }
-  # ]
-  # environment_variables = [
-  #   for key, value in var.environment_variables : {
-  #     "name"  = key,
-  #     "value" = value
-  #   }
-  # ]
-
-  # pre_container_definitions_template = {
-  #   cpu                   = var.service_info.cpu_allocation
-  #   service_image         = var.service_info.image
-  #   memory                = var.service_info.mem_allocation
-  #   log_group_name        = local.log_group_name
-  #   region                = data.aws_region.this.name
-  #   name                  = local.name
-  #   service_port          = var.service_info.port
-  #   environment_variables = jsonencode(local.environment_variables)
-  #   secret_variables      = jsonencode(local.secret_variables)
-  #   entry_point           = jsonencode(var.entry_point)
-  #   mount_points          = jsonencode(local.mount_points)
-  #   command               = jsonencode(var.command)
-  # }
-  # apm_template = {
-  #   apm_cpu             = var.apm_config.cpu
-  #   apm_sidecar_ecr_url = var.apm_sidecar_ecr_url
-  #   apm_memory          = var.apm_config.memory
-  #   apm_name            = local.apm_name
-  #   apm_service_port    = var.apm_config.service_port
-  # }
-  # ec2_template = {
-  #   unix_max_connection = tostring(var.unix_max_connection)
-  # }
-  # container_definitions_template = local.is_apm_enabled ? merge(local.pre_container_definitions_template, local.apm_template) : local.pre_container_definitions_template
-  # render_container_definitions   = local.is_apm_enabled ? templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", local.container_definitions_template) : templatefile("${path.module}/task-definitions/service-main-container.json", local.container_definitions_template)
-
-  # container_definitions     = local.render_container_definitions
-  # container_definitions_ec2 = templatefile("${path.module}/task-definitions/service-main-container-ec2.json", merge(local.pre_container_definitions_template, local.ec2_template))
-}
-
-/* -------------------------------------------------------------------------- */
-/*                             New Task Definition                            */
-/* -------------------------------------------------------------------------- */
-locals {
   container_task_definitions = jsonencode([for key, configuration in var.container :
     {
       name        = lookup(configuration, "name", null),
@@ -172,8 +122,9 @@ locals {
           valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
         }
       ]
-      entryPoint = lookup(configuration, "entry_point", [])
-      command    = lookup(configuration, "command", [])
+      entryPoint   = lookup(configuration, "entry_point", [])
+      command      = lookup(configuration, "command", [])
+      mount_points = concat(local.mount_points_application_scratch, lookup(configuration, "mount_points", []))
     }
   ])
 }
