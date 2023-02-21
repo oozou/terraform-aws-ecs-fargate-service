@@ -14,6 +14,7 @@ locals {
   # Task Exec Role
   task_execution_role_arn                     = var.is_create_iam_role ? aws_iam_role.task_execution_role[0].arn : var.exists_task_execution_role_arn
   task_execution_role_name                    = try(split("/", local.task_execution_role_arn)[1], "")
+  task_execution_role_id                      = local.task_execution_role_name
   ecs_default_task_execution_role_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
   ecs_task_execution_role_policy_arns         = toset(concat(var.additional_ecs_task_execution_role_policy_arns, local.ecs_default_task_execution_role_policy_arns))
 

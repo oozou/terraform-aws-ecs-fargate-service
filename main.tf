@@ -94,12 +94,12 @@ resource "aws_lb_target_group" "this" {
   deregistration_delay = var.target_group_deregistration_delay
 
   health_check {
-    interval            = lookup(local.container_target_group_object, "health_check.interval", null)
-    path                = lookup(local.container_target_group_object, "health_check.path", null)
-    timeout             = lookup(local.container_target_group_object, "health_check.timeout", null)
-    healthy_threshold   = lookup(local.container_target_group_object, "health_check.healthy_threshold", null)
-    unhealthy_threshold = lookup(local.container_target_group_object, "health_check.unhealthy_threshold", null)
-    matcher             = lookup(local.container_target_group_object, "health_check.matcher", null)
+    interval            = lookup(var.health_check, "interval", null)
+    path                = lookup(var.health_check, "path", null)
+    timeout             = lookup(var.health_check, "timeout", null)
+    healthy_threshold   = lookup(var.health_check, "healthy_threshold", null)
+    unhealthy_threshold = lookup(var.health_check, "unhealthy_threshold", null)
+    matcher             = lookup(var.health_check, "matcher", null)
   }
 
   tags = merge(local.tags, { "Name" = format("%s-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name)))) })
@@ -170,9 +170,9 @@ resource "random_string" "service_secret_random_suffix" {
   special = false
 }
 
-# /* -------------------------------------------------------------------------- */
-# /*                                   Secret                                   */
-# /* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*                                   Secret                                   */
+/* -------------------------------------------------------------------------- */
 # resource "aws_secretsmanager_secret" "service_secrets" {
 #   name        = "${local.name}/${random_string.service_secret_random_suffix.result}"
 #   description = "Secret for service ${local.name}"
@@ -185,6 +185,44 @@ resource "random_string" "service_secret_random_suffix" {
 #   secret_id     = aws_secretsmanager_secret.service_secrets.id
 #   secret_string = jsonencode(var.secret_variables)
 # }
+
+# # We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
+# # inject them as environment variables in the service
+# resource "aws_iam_role_policy" "task_execution_secrets" {
+#   count = var.is_create_iam_role && length(var.secret_variables) > 0 ? 1 : 0
+
+#   name = "${local.name}-ecs-task-execution-secrets"
+#   role = local.task_execution_role_id
+
+#   policy = <<EOF
+# {
+#     "Statement": [
+#       {
+#         "Effect": "Allow",
+#         "Action": ["secretsmanager:GetSecretValue"],
+#         "Resource": ${jsonencode(format("%s/*", split("/", aws_secretsmanager_secret.service_secrets.arn)[0]))}
+#       }
+#     ]
+# }
+# EOF
+# }
+
+resource "aws_secretsmanager_secret" "this" {
+  for_each = var.container
+
+  name        = "${each.value.name}/${random_string.service_secret_random_suffix.result}"
+  description = "Secret for service ${local.name}"
+  kms_key_id  = module.secret_kms_key.key_arn
+
+  tags = merge({ Name = "${local.name}" }, local.tags)
+}
+
+resource "aws_secretsmanager_secret_version" "this" {
+  for_each = var.container
+
+  secret_id     = aws_secretsmanager_secret.this[each.key].id
+  secret_string = jsonencode(lookup(each.value, "secret_variables", {}))
+}
 
 # # We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
 # # inject them as environment variables in the service
