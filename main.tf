@@ -166,6 +166,8 @@ module "secret_kms_key" {
 }
 
 resource "random_string" "service_secret_random_suffix" {
+  for_each = var.container
+
   length  = 5
   special = false
 }
@@ -210,7 +212,7 @@ resource "random_string" "service_secret_random_suffix" {
 resource "aws_secretsmanager_secret" "this" {
   for_each = var.container
 
-  name        = "${each.value.name}/${random_string.service_secret_random_suffix.result}"
+  name        = "${each.value.name}/${random_string.service_secret_random_suffix[each.key].result}"
   description = "Secret for service ${local.name}"
   kms_key_id  = module.secret_kms_key.key_arn
 

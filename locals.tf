@@ -114,7 +114,7 @@ locals {
           value = value
         }
       ]
-      secret = [for secret_name, secret_value in lookup(configuration, "secret_variables", []) :
+      secrets = [for secret_name, secret_value in lookup(configuration, "secret_variables", []) :
         {
           name      = secret_name
           valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.this[key].arn, secret_name)
