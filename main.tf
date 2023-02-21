@@ -82,35 +82,10 @@ resource "aws_cloudwatch_log_group" "this" {
 /* -------------------------------------------------------------------------- */
 /*                                Load Balancer                               */
 /* -------------------------------------------------------------------------- */
-/* ----------------------------- LB Target Group ---------------------------- */
 resource "aws_lb_target_group" "this" {
-  count = var.is_attach_service_with_lb ? 1 : 0
-
-  name = format("%s-tg", substr("${local.name}", 0, min(29, length(local.name))))
-
-  # TODO fix this var.container.main_container.port_mappings[0].container_port
-  port                 = var.container.main_container.port_mappings[0].container_port
-  protocol             = var.container.main_container.port_mappings[0].container_port == 443 ? "HTTPS" : "HTTP"
-  vpc_id               = var.vpc_id
-  target_type          = "ip"
-  deregistration_delay = var.target_group_deregistration_delay
-
-  health_check {
-    interval            = lookup(var.health_check, "interval", null)
-    path                = lookup(var.health_check, "path", null)
-    timeout             = lookup(var.health_check, "timeout", null)
-    healthy_threshold   = lookup(var.health_check, "healthy_threshold", null)
-    unhealthy_threshold = lookup(var.health_check, "unhealthy_threshold", null)
-    matcher             = lookup(var.health_check, "matcher", null)
-  }
-
-  tags = merge(local.tags, { "Name" = format("%s-tg", local.name) })
-}
-
-resource "aws_lb_target_group" "thoese" {
   for_each = { for key, value in var.container : key => value if try(value.is_attach_to_lb, false) }
 
-  name = format("%s-tg", substr("${lookup(each.value, "name", each.key)}", 0, min(29, length(lookup(each.value, "name", each.key)))))
+  name = format("%s-tg", substr(lookup(each.value, "name", each.key), 0, min(29, length(lookup(each.value, "name", each.key)))))
 
   port                 = lookup(each.value, "port_mappings", null)[0].container_port
   protocol             = lookup(each.value, "port_mappings", null)[0].container_port == 443 ? "HTTPS" : "HTTP"
@@ -127,7 +102,7 @@ resource "aws_lb_target_group" "thoese" {
     matcher             = lookup(each.value.health_check, "matcher", null)
   }
 
-  tags = merge(local.tags, { "Name" = format("%s-tg", substr("${lookup(each.value, "name", each.key)}", 0, min(29, length(lookup(each.value, "name", each.key))))) })
+  tags = merge(local.tags, { "Name" = format("%s-tg", substr(lookup(each.value, "name", each.key), 0, min(29, length(lookup(each.value, "name", each.key))))) })
 }
 /* ------------------------------ Listener Rule ----------------------------- */
 resource "aws_lb_listener_rule" "this" {
@@ -195,42 +170,42 @@ resource "random_string" "service_secret_random_suffix" {
   special = false
 }
 
-/* -------------------------------------------------------------------------- */
-/*                                   Secret                                   */
-/* -------------------------------------------------------------------------- */
-resource "aws_secretsmanager_secret" "service_secrets" {
-  name        = "${local.name}/${random_string.service_secret_random_suffix.result}"
-  description = "Secret for service ${local.name}"
-  kms_key_id  = module.secret_kms_key.key_arn
+# /* -------------------------------------------------------------------------- */
+# /*                                   Secret                                   */
+# /* -------------------------------------------------------------------------- */
+# resource "aws_secretsmanager_secret" "service_secrets" {
+#   name        = "${local.name}/${random_string.service_secret_random_suffix.result}"
+#   description = "Secret for service ${local.name}"
+#   kms_key_id  = module.secret_kms_key.key_arn
 
-  tags = merge({ Name = "${local.name}" }, local.tags)
-}
+#   tags = merge({ Name = "${local.name}" }, local.tags)
+# }
 
-resource "aws_secretsmanager_secret_version" "service_secrets" {
-  secret_id     = aws_secretsmanager_secret.service_secrets.id
-  secret_string = jsonencode(var.secret_variables)
-}
+# resource "aws_secretsmanager_secret_version" "service_secrets" {
+#   secret_id     = aws_secretsmanager_secret.service_secrets.id
+#   secret_string = jsonencode(var.secret_variables)
+# }
 
-# We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
-# inject them as environment variables in the service
-resource "aws_iam_role_policy" "task_execution_secrets" {
-  count = var.is_create_iam_role && length(var.secret_variables) > 0 ? 1 : 0
+# # We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
+# # inject them as environment variables in the service
+# resource "aws_iam_role_policy" "task_execution_secrets" {
+#   count = var.is_create_iam_role && length(var.secret_variables) > 0 ? 1 : 0
 
-  name = "${local.name}-ecs-task-execution-secrets"
-  role = local.task_execution_role_id
+#   name = "${local.name}-ecs-task-execution-secrets"
+#   role = local.task_execution_role_id
 
-  policy = <<EOF
-{
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Action": ["secretsmanager:GetSecretValue"],
-        "Resource": ${jsonencode(format("%s/*", split("/", aws_secretsmanager_secret.service_secrets.arn)[0]))}
-      }
-    ]
-}
-EOF
-}
+#   policy = <<EOF
+# {
+#     "Statement": [
+#       {
+#         "Effect": "Allow",
+#         "Action": ["secretsmanager:GetSecretValue"],
+#         "Resource": ${jsonencode(format("%s/*", split("/", aws_secretsmanager_secret.service_secrets.arn)[0]))}
+#       }
+#     ]
+# }
+# EOF
+# }
 
 /* -------------------------------------------------------------------------- */
 /*                             ECS Task Definition                            */

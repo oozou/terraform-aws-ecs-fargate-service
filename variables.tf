@@ -157,21 +157,6 @@ variable "custom_header_token" {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                   Secret                                   */
-/* -------------------------------------------------------------------------- */
-variable "secret_variables" {
-  description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
-  type        = map(string)
-  default     = {}
-}
-
-variable "environment_variables" {
-  description = "Map of environment varaibles ex. { RDS_ENDPOINT = \"admin@rds@123\"}"
-  type        = map(any)
-  default     = {}
-}
-
-/* -------------------------------------------------------------------------- */
 /*                               Task Definition                              */
 /* -------------------------------------------------------------------------- */
 # variable "service_info" {
@@ -184,26 +169,6 @@ variable "environment_variables" {
 #     mount_points   = list(any)
 #   })
 # }
-
-variable "apm_sidecar_ecr_url" {
-  description = "[Optional] To enable APM, set Sidecar ECR URL"
-  type        = string
-  default     = ""
-}
-
-variable "apm_config" {
-  description = "Config for X-Ray sidecar container for APM and traceability"
-  type = object({
-    service_port = number
-    cpu          = number
-    memory       = number
-  })
-  default = {
-    service_port = 9000
-    cpu          = 256
-    memory       = 512
-  }
-}
 
 variable "is_application_scratch_volume_enabled" {
   description = "To enabled the temporary storage for the service"
@@ -284,27 +249,6 @@ variable "ordered_placement_strategy" {
     type  = "spread"
     field = "attribute:ecs.availability-zone"
   }]
-}
-
-variable "unix_max_connection" {
-  description = "Number of net.core.somaxconn"
-  type        = number
-  default     = 4096
-}
-
-/* -------------------------------------------------------------------------- */
-/*                           Entrypoint and command                           */
-/* -------------------------------------------------------------------------- */
-variable "entry_point" {
-  description = "Entrypoint to override"
-  type        = list(string)
-  default     = []
-}
-
-variable "command" {
-  description = "Command to override"
-  type        = list(string)
-  default     = []
 }
 
 /* -------------------------------------------------------------------------- */

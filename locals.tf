@@ -14,7 +14,6 @@ locals {
   # Task Exec Role
   task_execution_role_arn                     = var.is_create_iam_role ? aws_iam_role.task_execution_role[0].arn : var.exists_task_execution_role_arn
   task_execution_role_name                    = try(split("/", local.task_execution_role_arn)[1], "")
-  task_execution_role_id                      = local.task_execution_role_name
   ecs_default_task_execution_role_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
   ecs_task_execution_role_policy_arns         = toset(concat(var.additional_ecs_task_execution_role_policy_arns, local.ecs_default_task_execution_role_policy_arns))
 
@@ -23,10 +22,6 @@ locals {
 
   # Volume
   volumes = concat(var.efs_volumes)
-
-  # APM
-  is_apm_enabled = signum(length(trimspace(var.apm_sidecar_ecr_url))) == 1
-  apm_name       = "xray-apm-sidecar"
 
   # ECS Service
   ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.this.name}:${data.aws_caller_identity.this.account_id}:cluster/${var.ecs_cluster_name}"
@@ -118,20 +113,15 @@ locals {
           value = value
         }
       ]
-      secret = [for secret_name, secret_value in lookup(configuration, "secret_variables", []) :
-        {
-          name      = secret_name
-          valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
-        }
-      ]
+      # secret = [for secret_name, secret_value in lookup(configuration, "secret_variables", []) :
+      #   {
+      #     name      = secret_name
+      #     valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
+      #   }
+      # ]
       entryPoint   = lookup(configuration, "entry_point", [])
       command      = lookup(configuration, "command", [])
       mount_points = concat(local.mount_points_application_scratch, lookup(configuration, "mount_points", []))
     }
   ])
-  debug = [for key, configuration in var.container : key]
-}
-
-output "debug" {
-  value = local.raise_multiple_container_attach_to_alb
 }
