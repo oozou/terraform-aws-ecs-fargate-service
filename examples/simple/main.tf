@@ -128,30 +128,6 @@ module "service_api" {
     }
   }
 
-  # Task definition
-  # service_info = {
-  #   cpu_allocation = 256,
-  #   mem_allocation = 512,
-  #   port           = 80,
-  #   image          = "nginx"
-  #   mount_points   = []
-  # }
-  # is_application_scratch_volume_enabled = true
-
-  # Secret and Env
-  # environment_variables = {
-  #   THIS_IS_ENV  = "ENV1",
-  #   THIS_IS_ENVV = "ENVV",
-  # }
-  # secret_variables = { # WARNING Secret should not be in plain text
-  #   THIS_IS_SECRET       = "1xxxxx",
-  #   THIS_IS_SECRETT      = "2xxxxx",
-  #   THIS_IS_SECRETTT     = "3xxxxx",
-  #   THIS_IS_SECRETTTTT   = "4xxxxx",
-  #   THIS_IS_SECRETTTTTT  = "5xxxxx",
-  #   THIS_IS_SECRETTTTTTT = "6xxxxx",
-  # }
-
   # ECS service
   ecs_cluster_name            = module.fargate_cluster.ecs_cluster_name
   service_discovery_namespace = module.fargate_cluster.service_discovery_namespace
