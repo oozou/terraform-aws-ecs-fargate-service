@@ -223,7 +223,7 @@ resource "aws_secretsmanager_secret_version" "this" {
   for_each = var.container
 
   secret_id     = aws_secretsmanager_secret.this[each.key].id
-  secret_string = jsonencode(try(var.secret_variables[key], {}))
+  secret_string = jsonencode(try(var.secret_variables[each.key], {}))
   # secret_string = jsonencode(lookup(each.value, "secret_variables", {}))
 }
 
