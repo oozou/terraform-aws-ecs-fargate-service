@@ -1,5 +1,4 @@
 data "aws_caller_identity" "this" {}
-data "aws_region" "this" {}
 
 locals {
   name = format("%s-%s-%s", var.prefix, var.environment, var.name)
@@ -95,12 +94,11 @@ module "service_api" {
   ]
 
   # ALB
-  is_attach_service_with_lb = false
-  alb_listener_arn          = module.fargate_cluster.alb_listener_http_arn
-  alb_host_header           = null
-  alb_paths                 = ["/*"]
-  alb_priority              = "100"
-  vpc_id                    = module.vpc.vpc_id
+  alb_listener_arn = module.fargate_cluster.alb_listener_http_arn
+  alb_host_header  = null
+  alb_paths        = ["/*"]
+  alb_priority     = "100"
+  vpc_id           = module.vpc.vpc_id
   health_check = {
     interval            = 20,
     path                = "",
@@ -127,14 +125,6 @@ module "service_api" {
           protocol       = "tcp"
         }
       ]
-      environment_variables = {
-        THIS_IS_ENV  = "ENV1",
-        THIS_IS_ENVV = "ENVV",
-      }
-      secret_variables = { # WARNING Secret should not be in plain text
-        THIS_IS_SECRET  = "1xxxxx",
-        THIS_IS_SECRETT = "2xxxxx",
-      }
       entry_point = []
       command     = []
     }
@@ -150,20 +140,16 @@ module "service_api" {
           protocol       = "tcp"
         },
       ]
-      environment_variables = {
-        XXXX  = "XXXX",
-        XXXXX = "XXXXX",
-      }
-      secret_variables = { # WARNING Secret should not be in plain text
-        AA = "AAAAA",
-        A  = "AAA",
-      }
     }
   }
   environment_variables = {
     main_container = {
       THIS_IS_ENV  = "ENV1",
       THIS_IS_ENVV = "ENVV",
+    }
+    side_container = {
+      XXXX  = "XXXX",
+      XXXXX = "XXXXX",
     }
   }
   secret_variables = {
@@ -174,8 +160,4 @@ module "service_api" {
   }
 
   tags = var.custom_tags
-}
-
-output "debug" {
-  value = module.service_api.debug
 }
