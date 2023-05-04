@@ -69,46 +69,46 @@ resource "aws_iam_role_policy_attachment" "task_execution_role" {
 /* -------------------------------------------------------------------------- */
 /*                                 CloudWatch                                 */
 /* -------------------------------------------------------------------------- */
-# data "aws_iam_policy_document" "cloudwatch_log_group_kms_policy" {
-#   statement {
-#     sid = "AllowCloudWatchToDoCryptography"
-#     actions = [
-#       "kms:Encrypt*",
-#       "kms:Decrypt*",
-#       "kms:ReEncrypt*",
-#       "kms:GenerateDataKey*",
-#       "kms:Describe*"
-#     ]
-#     resources = ["*"]
+data "aws_iam_policy_document" "cloudwatch_log_group_kms_policy" {
+  statement {
+    sid = "AllowCloudWatchToDoCryptography"
+    actions = [
+      "kms:Encrypt*",
+      "kms:Decrypt*",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:Describe*"
+    ]
+    resources = ["*"]
 
-#     principals {
-#       type        = "Service"
-#       identifiers = tolist([format("logs.%s.amazonaws.com", data.aws_region.this.name)])
-#     }
+    principals {
+      type        = "Service"
+      identifiers = tolist([format("logs.%s.amazonaws.com", data.aws_region.this.name)])
+    }
 
-#     condition {
-#       test     = "ArnEquals"
-#       variable = "kms:EncryptionContext:aws:logs:arn"
-#       values   = [format("arn:aws:logs:%s:%s:log-group:%s", data.aws_region.this.name, data.aws_caller_identity.this.account_id, local.log_group_name)]
-#     }
-#   }
-# }
+    condition {
+      test     = "ArnEquals"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = [format("arn:aws:logs:%s:%s:log-group:%s", data.aws_region.this.name, data.aws_caller_identity.this.account_id, local.log_group_name)]
+    }
+  }
+}
 
-# module "cloudwatch_log_group_kms" {
-#   count   = var.is_create_cloudwatch_log_group && var.is_create_default_kms && var.cloudwatch_log_kms_key_arn == null ? 1 : 0
-#   source  = "oozou/kms-key/aws"
-#   version = "1.0.0"
+module "cloudwatch_log_group_kms" {
+  count   = var.is_create_cloudwatch_log_group && var.is_create_default_kms && var.cloudwatch_log_kms_key_arn == null ? 1 : 0
+  source  = "oozou/kms-key/aws"
+  version = "1.0.0"
 
-#   prefix               = var.prefix
-#   environment          = var.environment
-#   name                 = format("%s-log-group", var.name)
-#   key_type             = "service"
-#   append_random_suffix = true
-#   description          = format("Secure Secrets Manager's service secrets for service %s", local.name)
-#   additional_policies  = [data.aws_iam_policy_document.cloudwatch_log_group_kms_policy.json]
+  prefix               = var.prefix
+  environment          = var.environment
+  name                 = format("%s-log-group", var.name)
+  key_type             = "service"
+  append_random_suffix = true
+  description          = format("Secure Secrets Manager's service secrets for service %s", local.name)
+  additional_policies  = [data.aws_iam_policy_document.cloudwatch_log_group_kms_policy.json]
 
-#   tags = merge(local.tags, { "Name" : format("%s-log-group", local.name) })
-# }
+  tags = merge(local.tags, { "Name" : format("%s-log-group", local.name) })
+}
 
 resource "aws_cloudwatch_log_group" "this" {
   count = var.is_create_cloudwatch_log_group ? 1 : 0
