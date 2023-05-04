@@ -70,8 +70,6 @@ resource "aws_iam_role_policy_attachment" "task_execution_role" {
 /*                                 CloudWatch                                 */
 /* -------------------------------------------------------------------------- */
 data "aws_iam_policy_document" "cloudwatch_log_group_kms_policy" {
-  count = var.is_create_cloudwatch_log_group && var.is_create_default_kms && length(var.cloudwatch_log_kms_key_arn) == 0 ? 1 : 0
-
   statement {
     sid = "AllowCloudWatchToDoCryptography"
     actions = [
@@ -107,7 +105,7 @@ module "cloudwatch_log_group_kms" {
   key_type             = "service"
   append_random_suffix = true
   description          = format("Secure Secrets Manager's service secrets for service %s", local.name)
-  additional_policies  = [data.aws_iam_policy_document.cloudwatch_log_group_kms_policy[0].json]
+  additional_policies  = [data.aws_iam_policy_document.cloudwatch_log_group_kms_policy.json]
 
   tags = merge(local.tags, { "Name" : format("%s-log-group", local.name) })
 }
