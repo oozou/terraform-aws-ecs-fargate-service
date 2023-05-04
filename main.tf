@@ -91,7 +91,7 @@ data "aws_iam_policy_document" "cloudwatch_log_group_kms_policy" {
     condition {
       test     = "ArnEquals"
       variable = "kms:EncryptionContext:aws:logs:arn"
-      values   = [format("arn:aws:logs:%s:%s:log-group:log-group-name", data.aws_region.this.name, data.aws_caller_identity.this.account_id, local.log_group_name)]
+      values   = [format("arn:aws:logs:%s:%s:log-group:%s", data.aws_region.this.name, data.aws_caller_identity.this.account_id, local.log_group_name)]
     }
   }
 }
