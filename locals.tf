@@ -38,7 +38,7 @@ locals {
     | 0 | 1 | use custom kms
     | 1 | 0 | use default kms
     | 1 | 1 | use custom kms */
-  cloudwatch_log_group_kms_key_arn = var.cloudwatch_log_kms_key_arn != null ? var.cloudwatch_log_kms_key_arn : var.is_create_default_kms ? module.cloudwatch_log_group_kms[0].key_arn : null
+  # cloudwatch_log_group_kms_key_arn = var.cloudwatch_log_kms_key_arn != null ? var.cloudwatch_log_kms_key_arn : var.is_create_default_kms ? module.cloudwatch_log_group_kms[0].key_arn : null
 
   comparison_operators = {
     ">=" = "GreaterThanOrEqualToThreshold",
