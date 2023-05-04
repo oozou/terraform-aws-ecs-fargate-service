@@ -79,6 +79,12 @@ variable "is_create_cloudwatch_log_group" {
   default     = true
 }
 
+variable "is_create_default_kms" {
+  description = "Whether to create cloudwatch log group kms or not"
+  type        = bool
+  default     = true
+}
+
 variable "cloudwatch_log_retention_in_days" {
   description = "Retention day for cloudwatch log group"
   type        = number
