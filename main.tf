@@ -115,7 +115,7 @@ resource "aws_cloudwatch_log_group" "this" {
 
   name              = local.log_group_name
   retention_in_days = var.cloudwatch_log_retention_in_days
-  kms_key_id        = local.cloudwatch_log_group_kms_key_arn
+  # kms_key_id        = local.cloudwatch_log_group_kms_key_arn
 
   tags = merge(local.tags, { "Name" = local.log_group_name })
 }
