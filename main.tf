@@ -75,11 +75,11 @@ data "aws_iam_policy_document" "cloudwatch_log_group_kms_policy" {
   statement {
     sid = "AllowCloudWatchToDoCryptography"
     actions = [
-      "kms:Encrypt",
-      "kms:Decrypt",
+      "kms:Encrypt*",
+      "kms:Decrypt*",
       "kms:ReEncrypt*",
       "kms:GenerateDataKey*",
-      "kms:Describe*",
+      "kms:Describe*"
     ]
     resources = ["*"]
 
