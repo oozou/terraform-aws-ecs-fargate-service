@@ -399,6 +399,8 @@ resource "aws_appautoscaling_target" "this" {
   resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.name)
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
+
+  tags = merge(local.tags, { Name = format("%s", local.name) })
 }
 
 /* -------------------------------------------------------------------------- */
