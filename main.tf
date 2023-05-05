@@ -95,7 +95,7 @@ data "aws_iam_policy_document" "cloudwatch_log_group_kms_policy" {
 }
 
 module "cloudwatch_log_group_kms" {
-  count   = var.is_create_cloudwatch_log_group && var.is_create_default_kms && var.cloudwatch_log_kms_key_arn == null ? 1 : 0
+  count   = var.is_create_cloudwatch_log_group && var.is_create_default_kms && var.cloudwatch_log_group_kms_key_arn == null ? 1 : 0
   source  = "oozou/kms-key/aws"
   version = "1.0.0"
 

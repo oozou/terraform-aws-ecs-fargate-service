@@ -91,7 +91,7 @@ variable "cloudwatch_log_retention_in_days" {
   default     = 90
 }
 
-variable "cloudwatch_log_kms_key_arn" {
+variable "cloudwatch_log_group_kms_key_arn" {
   description = "The ARN for the KMS encryption key."
   type        = string
   default     = null
