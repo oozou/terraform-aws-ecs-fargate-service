@@ -31,6 +31,15 @@ locals {
   is_create_target_group         = length(local.container_attahced_to_alb_keys) == 1
   container_target_group_object  = try(var.container[local.container_attahced_to_alb_keys[0]], {})
 
+  # KMS
+  /*| a | b | (a: enable default kms, b: use custom kms)
+    |---|---|
+    | 0 | 0 | no create
+    | 0 | 1 | use custom kms
+    | 1 | 0 | use default kms
+    | 1 | 1 | use custom kms */
+  cloudwatch_log_group_kms_key_arn = var.cloudwatch_log_group_kms_key_arn != null ? var.cloudwatch_log_group_kms_key_arn : var.is_create_default_kms ? module.cloudwatch_log_group_kms[0].key_arn : null
+
   comparison_operators = {
     ">=" = "GreaterThanOrEqualToThreshold",
     ">"  = "GreaterThanThreshold",
