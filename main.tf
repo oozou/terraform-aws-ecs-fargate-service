@@ -177,7 +177,7 @@ resource "aws_lb_listener_rule" "this" {
     for_each = var.alb_host_headers == [] ? [] : [true]
     content {
       host_header {
-        values = var.alb_host_heades
+        values = var.alb_host_headers
       }
     }
   }
