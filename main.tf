@@ -172,6 +172,16 @@ resource "aws_lb_listener_rule" "this" {
     }
   }
 
+  # DevOps temp feature
+  dynamic "condition" {
+    for_each = var.alb_host_headers == [] ? [] : [true]
+    content {
+      host_header {
+        values = var.alb_host_heades
+      }
+    }
+  }
+
   dynamic "condition" {
     for_each = var.custom_header_token == "" ? [] : [true]
     content {

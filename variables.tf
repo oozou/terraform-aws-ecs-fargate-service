@@ -138,6 +138,13 @@ variable "alb_host_header" {
   default     = null
 }
 
+# DevOps temp feature
+variable "alb_host_headers" {
+  description = "Mention host header for api endpoint"
+  type        = list(string)
+  default     = []
+}
+
 variable "alb_paths" {
   description = "Mention list Path For ALB routing eg: [\"/\"] or [\"/route1\"]"
   type        = list(string)
