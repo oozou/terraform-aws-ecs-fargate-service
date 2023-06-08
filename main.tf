@@ -164,23 +164,23 @@ resource "aws_lb_listener_rule" "this" {
   }
 
   dynamic "condition" {
-    for_each = var.alb_host_header == null ? [] : [true]
+    for_each = var.alb_host_header == null && var.alb_host_headers == []? [] : [true]
     content {
       host_header {
-        values = [var.alb_host_header]
+        values = concat([var.alb_host_header], var.alb_host_headers)
       }
     }
   }
 
   # DevOps temp feature
-  dynamic "condition" {
-    for_each = var.alb_host_headers == [] ? [] : [true]
-    content {
-      host_header {
-        values = var.alb_host_headers
-      }
-    }
-  }
+  #dynamic "condition" {
+  #  for_each = var.alb_host_headers == [] ? [] : [true]
+  #  content {
+  #    host_header {
+  #      values = var.alb_host_headers
+  #    }
+  #  }
+  #}
 
   dynamic "condition" {
     for_each = var.custom_header_token == "" ? [] : [true]
