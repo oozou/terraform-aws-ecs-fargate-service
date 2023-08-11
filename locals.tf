@@ -82,7 +82,7 @@ locals {
     }
   ] : []
 
-  container_task_definitions = jsonencode([for key, configuration in var.container :
+  container_task_definitions = [for key, configuration in var.container :
     {
       name        = lookup(configuration, "name", null),
       image       = lookup(configuration, "image", null),
@@ -128,5 +128,5 @@ locals {
       command      = lookup(configuration, "command", [])
       mount_points = concat(local.mount_points_application_scratch, lookup(configuration, "mount_points", []))
     }
-  ])
+  ]
 }

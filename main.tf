@@ -164,23 +164,13 @@ resource "aws_lb_listener_rule" "this" {
   }
 
   dynamic "condition" {
-    for_each = var.alb_host_header == null && var.alb_host_headers == []? [] : [true]
+    for_each = var.alb_host_header == null ? [] : [true]
     content {
       host_header {
-        values = concat([var.alb_host_header], var.alb_host_headers)
+        values = [var.alb_host_header]
       }
     }
   }
-
-  # DevOps temp feature
-  #dynamic "condition" {
-  #  for_each = var.alb_host_headers == [] ? [] : [true]
-  #  content {
-  #    host_header {
-  #      values = var.alb_host_headers
-  #    }
-  #  }
-  #}
 
   dynamic "condition" {
     for_each = var.custom_header_token == "" ? [] : [true]
@@ -277,7 +267,7 @@ resource "aws_ecs_task_definition" "this" {
   execution_role_arn       = local.task_execution_role_arn
   task_role_arn            = local.task_role_arn
 
-  container_definitions = local.container_task_definitions
+  container_definitions = jsonencode(local.container_task_definitions)
 
   dynamic "volume" {
     for_each = local.volumes
