@@ -86,7 +86,7 @@ resource "aws_cloudwatch_log_group" "this" {
 resource "aws_lb_target_group" "this" {
   count = var.is_attach_service_with_lb ? 1 : 0
 
-  name = format("%s-tg", substr("${local.name}", 0, min(29, length(local.name))))
+  name = format("%s-tg", substr(local.name, 0, min(29, length(local.name))))
 
   port                 = var.service_info.port
   protocol             = var.service_info.port == 443 ? "HTTPS" : "HTTP"
@@ -179,7 +179,7 @@ resource "aws_secretsmanager_secret" "service_secrets" {
   description = "Secret for service ${local.name}"
   kms_key_id  = module.secret_kms_key.key_arn
 
-  tags = merge({ Name = "${local.name}" }, local.tags)
+  tags = merge({ Name = "${local.name}/${random_string.service_secret_random_suffix.result}" }, local.tags)
 }
 
 resource "aws_secretsmanager_secret_version" "service_secrets" {
@@ -353,15 +353,143 @@ resource "aws_appautoscaling_target" "this" {
   service_namespace  = "ecs"
 }
 
+# /* -------------------------------------------------------------------------- */
+# /*                             Auto Scaling Policy                            */
+# /* -------------------------------------------------------------------------- */
+# resource "aws_appautoscaling_policy" "target_tracking_scaling_policies" {
+#   for_each = try(var.scaling_configuration.policy_type, null) == "TargetTrackingScaling" ? var.scaling_configuration.scaling_behaviors : {}
+
+#   depends_on = [aws_appautoscaling_target.this[0]]
+
+#   name               = format("%s-%s-scaling-policy", local.name, replace(each.key, "_", "-"))
+#   resource_id        = aws_appautoscaling_target.this[0].resource_id
+#   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
+#   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
+
+#   policy_type = lookup(var.scaling_configuration, "policy_type", null)
+
+#   target_tracking_scaling_policy_configuration {
+#     target_value       = lookup(each.value, "target_value", null)
+#     scale_in_cooldown  = lookup(each.value, "scale_in_cooldown", 180)
+#     scale_out_cooldown = lookup(each.value, "scale_out_cooldown", 60)
+
+#     dynamic "predefined_metric_specification" {
+#       for_each = local.is_contain_predefined_metric ? [true] : []
+#       iterator = _null
+#       content {
+#         predefined_metric_type = lookup(each.value, "predefined_metric_type", null)
+#       }
+#     }
+
+#     dynamic "customized_metric_specification" {
+#       for_each = !local.is_contain_predefined_metric ? [true] : []
+#       iterator = _null
+
+#       content {
+#         # dynamic "metrics" {
+#         #   for_each = lookup(each.value, "custom_metrics", [])
+#         #   iterator = custom_metric
+
+#         #   content {
+#         #     id          = lookup(custom_metric.value, "id", null)
+#         #     label       = lookup(custom_metric.value, "label", replace("_", "-", custom_metric.key))
+#         #     expression  = lookup(custom_metric.value, "expression", null)
+#         #     return_data = lookup(custom_metric.value, "return_data", true)
+#         #     /* -------------------------------------------------------------------------- */
+#         #     /*              1) This `metric_stat` blog can have only 1 blocks             */
+#         #     /* -------------------------------------------------------------------------- */
+#         #     dynamic "metric_stat" {
+#         #       for_each = lookup(custom_metric.value, "metric_stat", [])
+#         #       iterator = metric_stat
+
+#         #       content {
+#         #         stat = "Average"
+#         #         metric {
+#         #           metric_name = "XX"
+#         #           namespace   = "YY"
+#         #           dimensions {
+#         #             name  = "xxx"
+#         #             value = "xxx"
+#         #           }
+#         #         }
+#         #       }
+#         #     }
+#         #     # metric_stat {
+#         #     #   # stat = lookup(lookup(custom_metric.value, "metric_stat", {}), "stat", "")
+#         #     #   metric {
+#         #     #     # metric_name = lookup(custom_metric.value.metric_stat, "metric_name", null)
+#         #     #     # metric_name = lookup(lookup(custom_metric.value, "metric_stat", {}), "metric_name", null)
+#         #     #     metric_name = "s"
+#         #     #     # namespace   = lookup(custom_metric.value.metric_stat, "namespace", null)
+#         #     #     # namespace = lookup(lookup(custom_metric.value, "metric_stat", {}), "namespace", null)
+#         #     #     namespace = "a"
+#         #     #     dynamic "dimensions" {
+#         #     #       # for_each   = lookup(custom_metric.value.metric_stat, "metric_stat", [])
+#         #     #       for_each = lookup(lookup(custom_metric.value, "metric_stat", {}), "dimensions", [])
+#         #     #       iterator = dimension
+
+#         #     #       content {
+#         #     #         name  = lookup(dimension.value, "name", null)
+#         #     #         value = lookup(dimension.value, "value", null)
+#         #     #       }
+#         #     #     }
+#         #     #   }
+#         #     # }
+#         #   }
+#         # }
+#         dynamic "metrics" {
+#           for_each = lookup(lookup(each.value, "custom_metrics", {}), "expression", null) == null ? lookup(each.value, "custom_metrics", {}) : {}
+#           iterator = custom_metric
+
+#           content {
+#             id          = lookup(custom_metric.value, "id", null)
+#             label       = lookup(custom_metric.value, "label", replace("_", "-", custom_metric.key))
+#             expression  = lookup(custom_metric.value, "expression", null)
+#             return_data = lookup(custom_metric.value, "return_data", true)
+#             metric_stat {
+#               stat = lookup(lookup(custom_metric.value, "metric_stat", {}), "stat", "")
+#               metric {
+#                 metric_name = lookup(lookup(custom_metric.value, "metric_stat", {}), "metric_name", null)
+#                 namespace   = lookup(lookup(custom_metric.value, "metric_stat", {}), "namespace", null)
+#                 dynamic "dimensions" {
+#                   for_each = lookup(lookup(custom_metric.value, "metric_stat", {}), "dimensions", [])
+#                   iterator = dimension
+
+#                   content {
+#                     name  = lookup(dimension.value, "name", null)
+#                     value = lookup(dimension.value, "value", null)
+#                   }
+#                 }
+#               }
+#             }
+#           }
+#         }
+
+#         dynamic "metrics" {
+#           for_each = lookup(lookup(each.value, "custom_metrics", {}), "expression", null) != null ? lookup(each.value, "custom_metrics", {}) : {}
+#           iterator = custom_metric
+
+#           content {
+#             id          = lookup(custom_metric.value, "id", null)
+#             label       = lookup(custom_metric.value, "label", replace("_", "-", custom_metric.key))
+#             expression  = lookup(custom_metric.value, "expression", null)
+#             return_data = lookup(custom_metric.value, "return_data", true)
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
+
 /* -------------------------------------------------------------------------- */
-/*                             Auto Scaling Policy                            */
+/*                              TEST 2 NEW THINGS                             */
 /* -------------------------------------------------------------------------- */
 resource "aws_appautoscaling_policy" "target_tracking_scaling_policies" {
-  for_each = try(var.scaling_configuration.policy_type, null) == "TargetTrackingScaling" ? var.scaling_configuration.scaling_behaviors : {}
+  count = try(var.scaling_configuration.policy_type, null) == "TargetTrackingScaling" ? 1 : 0
 
   depends_on = [aws_appautoscaling_target.this[0]]
 
-  name               = format("%s-%s-scaling-policy", local.name, replace(each.key, "_", "-"))
+  name               = format("%s-%s-scaling-policy", local.name, var.scaling_configuration["name"])
   resource_id        = aws_appautoscaling_target.this[0].resource_id
   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
@@ -369,54 +497,105 @@ resource "aws_appautoscaling_policy" "target_tracking_scaling_policies" {
   policy_type = lookup(var.scaling_configuration, "policy_type", null)
 
   target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = lookup(each.value, "predefined_metric_type", null)
+    target_value       = lookup(var.scaling_configuration["scaling_behaviors"], "target_value", null)
+    scale_in_cooldown  = lookup(var.scaling_configuration["scaling_behaviors"], "scale_in_cooldown", 180)
+    scale_out_cooldown = lookup(var.scaling_configuration["scaling_behaviors"], "scale_out_cooldown", 60)
+
+    dynamic "predefined_metric_specification" {
+      for_each = local.is_contain_predefined_metric ? [true] : []
+      iterator = _null
+      content {
+        predefined_metric_type = lookup(each.value, "predefined_metric_type", null)
+      }
     }
 
-    target_value       = lookup(each.value, "target_value", null)
-    scale_in_cooldown  = lookup(each.value, "scale_in_cooldown", 180)
-    scale_out_cooldown = lookup(each.value, "scale_out_cooldown", 60)
+    dynamic "customized_metric_specification" {
+      for_each = !local.is_contain_predefined_metric ? [true] : []
+      iterator = _null
+
+      content {
+        dynamic "metrics" {
+          for_each = { for k, v in lookup(var.scaling_configuration["scaling_behaviors"], "custom_metrics", {}) : k => v if lookup(v, "expression", null) == null }
+          iterator = custom_metric
+
+          content {
+            id          = lookup(custom_metric.value, "id", null)
+            label       = lookup(custom_metric.value, "label", replace("_", "-", custom_metric.key))
+            expression  = lookup(custom_metric.value, "expression", null)
+            return_data = lookup(custom_metric.value, "return_data", true)
+            metric_stat {
+              stat = lookup(lookup(custom_metric.value, "metric_stat", {}), "stat", "")
+              metric {
+                metric_name = lookup(lookup(custom_metric.value, "metric_stat", {}), "metric_name", null)
+                namespace   = lookup(lookup(custom_metric.value, "metric_stat", {}), "namespace", null)
+                dynamic "dimensions" {
+                  for_each = lookup(lookup(custom_metric.value, "metric_stat", {}), "dimensions", [])
+                  iterator = dimension
+
+                  content {
+                    name  = lookup(dimension.value, "name", null)
+                    value = lookup(dimension.value, "value", null)
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        dynamic "metrics" {
+          for_each = { for k, v in lookup(var.scaling_configuration["scaling_behaviors"], "custom_metrics", {}) : k => v if lookup(v, "expression", null) != null }
+          iterator = custom_metric
+
+          content {
+            id          = lookup(custom_metric.value, "id", null)
+            label       = lookup(custom_metric.value, "label", replace("_", "-", custom_metric.key))
+            expression  = lookup(custom_metric.value, "expression", null)
+            return_data = lookup(custom_metric.value, "return_data", true)
+          }
+        }
+      }
+    }
   }
 }
 
 resource "aws_appautoscaling_policy" "step_scaling_policies" {
-  for_each = try(var.scaling_configuration.policy_type, null) == "StepScaling" ? var.scaling_configuration.scaling_behaviors : {}
+  count = try(var.scaling_configuration.policy_type, null) == "StepScaling" ? 1 : 0
 
   depends_on = [aws_appautoscaling_target.this[0]]
 
-  name               = format("%s-%s-scaling-policy", local.name, replace(each.key, "_", "-"))
+  name               = format("%s-%s-scaling-policy", local.name, replace(var.scaling_configuration["name"], "_", "-"))
   resource_id        = aws_appautoscaling_target.this[0].resource_id
   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
 
-  policy_type = lookup(var.scaling_configuration, "policy_type", null)
+  policy_type = "StepScaling"
 
   step_scaling_policy_configuration {
     adjustment_type         = "ChangeInCapacity"
-    cooldown                = lookup(each.value, "cooldown", 60)
-    metric_aggregation_type = lookup(each.value, "statistic", "Average")
+    cooldown                = lookup(var.scaling_configuration, "cooldown", null)
+    metric_aggregation_type = lookup(var.scaling_configuration, "statistic", null)
 
     dynamic "step_adjustment" {
-      for_each = each.value["scaling_adjustment"] > 0 ? [true] : []
-      iterator = _null
+      for_each = var.scaling_configuration["scaling_behaviors"]
+      iterator = step_adjustment
 
       content {
-        metric_interval_lower_bound = "0"
-        metric_interval_upper_bound = ""
-        scaling_adjustment          = lookup(each.value, "scaling_adjustment", null)
+        metric_interval_lower_bound = lookup(step_adjustment.value, "metric_interval_lower_bound", null)
+        metric_interval_upper_bound = lookup(step_adjustment.value, "metric_interval_upper_bound", null)
+        scaling_adjustment          = lookup(step_adjustment.value, "scaling_adjustment", null)
       }
     }
 
-    dynamic "step_adjustment" {
-      for_each = each.value["scaling_adjustment"] < 0 ? [true] : []
-      iterator = _null
+    # dynamic "step_adjustment" {
+    #   for_each = each.value["scaling_adjustment"] < 0 ? [true] : []
+    #   iterator = _null
 
-      content {
-        metric_interval_lower_bound = ""
-        metric_interval_upper_bound = "0"
-        scaling_adjustment          = lookup(each.value, "scaling_adjustment", null)
-      }
-    }
+    #   content {
+    #     metric_interval_lower_bound = ""
+    #     metric_interval_upper_bound = "0"
+    #     scaling_adjustment          = lookup(each.value, "scaling_adjustment", null)
+    #   }
+    # }
   }
 }
 
@@ -424,38 +603,41 @@ module "step_alarm" {
   source  = "oozou/cloudwatch-alarm/aws"
   version = "1.0.0"
 
-  for_each = try(var.scaling_configuration.policy_type, null) == "StepScaling" ? var.scaling_configuration.scaling_behaviors : {}
+  count = try(var.scaling_configuration.policy_type, null) == "StepScaling" ? 1 : 0
 
   depends_on = [aws_appautoscaling_target.this[0]]
 
   prefix      = var.prefix
   environment = var.environment
-  name        = replace(each.key, "_", "-")
+  name        = format("%s-%s-scaling-policy", local.name, replace(var.scaling_configuration["name"], "_", "-"))
 
   alarm_description = format(
     "%s's %s %s %s in period %ss with %s datapoint",
-    lookup(each.value, "metric_name", null),
-    lookup(each.value, "statistic", null),
-    lookup(each.value, "comparison_operator", null),
-    lookup(each.value, "threshold", null),
-    lookup(each.value, "period", null),
-    lookup(each.value, "evaluation_periods", null)
+    lookup(var.scaling_configuration, "metric_name", null),
+    lookup(var.scaling_configuration, "statistic", null),
+    lookup(var.scaling_configuration, "comparison_operator", null),
+    lookup(var.scaling_configuration, "threshold", null),
+    lookup(var.scaling_configuration, "period", null),
+    lookup(var.scaling_configuration, "evaluation_periods", null)
   )
 
-  comparison_operator = local.comparison_operators[lookup(each.value, "comparison_operator", null)]
-  evaluation_periods  = lookup(each.value, "evaluation_periods", null)
-  metric_name         = lookup(each.value, "metric_name", null)
-  namespace           = "AWS/ECS"
-  period              = lookup(each.value, "period", null)
-  statistic           = lookup(each.value, "statistic", null)
-  threshold           = lookup(each.value, "threshold", null)
+  comparison_operator = local.comparison_operators[lookup(var.scaling_configuration, "comparison_operator", null)]
+  evaluation_periods  = lookup(var.scaling_configuration, "evaluation_periods", null)
+  metric_name         = lookup(var.scaling_configuration, "metric_name", null)
+  namespace           = lookup(var.scaling_configuration, "namespace", "AWS/ECS")
+  period              = lookup(var.scaling_configuration, "period", null)
+  statistic           = lookup(var.scaling_configuration, "statistic", null)
+  threshold           = lookup(var.scaling_configuration, "threshold", null)
 
   dimensions = {
     ClusterName = var.ecs_cluster_name
     ServiceName = local.name
   }
 
-  alarm_actions = concat([aws_appautoscaling_policy.step_scaling_policies[each.key].arn], lookup(each.value, "alarm_actions", lookup(var.scaling_configuration, "default_alarm_actions", [])))
+  alarm_actions = concat(
+    [aws_appautoscaling_policy.step_scaling_policies[0].arn],
+    # lookup(each.value, "alarm_actions", lookup(var.scaling_configuration, "default_alarm_actions", []))
+  )
 
   tags = var.tags
 }

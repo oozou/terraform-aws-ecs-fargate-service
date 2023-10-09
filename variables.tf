@@ -265,6 +265,12 @@ variable "scaling_configuration" {
   default     = {}
 }
 
+variable "scaling_behaviors" {
+  description = "(optional) scaling behaviours"
+  type        = any
+  default     = {}
+}
+
 /* -------------------------------------------------------------------------- */
 /*                      capacity provider strategy                            */
 /* -------------------------------------------------------------------------- */

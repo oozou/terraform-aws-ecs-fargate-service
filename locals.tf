@@ -120,6 +120,9 @@ locals {
 /*                                Auto Scaling                                */
 /* -------------------------------------------------------------------------- */
 locals {
+  is_target_tracking_scaling   = try(var.scaling_configuration["policy_type"], "not_match") == "TargetTrackingScaling" ? true : false
+  is_contain_predefined_metric = local.is_target_tracking_scaling ? length([for behavior in var.scaling_behaviors : behavior if contains(keys(behavior), "predefined_metric_type")]) > 0 : false
+
   comparison_operators = {
     ">=" = "GreaterThanOrEqualToThreshold",
     ">"  = "GreaterThanThreshold",
