@@ -36,6 +36,7 @@ locals {
     {
       "Environment" = var.environment,
       "Terraform"   = "true"
+      "Module"      = "terraform-aws-ecs-fargate-service"
     },
     var.tags
   )
@@ -120,8 +121,10 @@ locals {
 /*                                Auto Scaling                                */
 /* -------------------------------------------------------------------------- */
 locals {
-  is_target_tracking_scaling   = try(var.scaling_configuration["policy_type"], "not_match") == "TargetTrackingScaling" ? true : false
-  is_contain_predefined_metric = local.is_target_tracking_scaling ? length([for behavior in var.scaling_behaviors : behavior if contains(keys(behavior), "predefined_metric_type")]) > 0 : false
+  is_created_aws_appautoscaling_target = var.target_tracking_configuration != {} || var.step_scaling_configuration != {}
+
+  is_target_tracking_scaling   = var.target_tracking_configuration == {} ? false : true
+  is_contain_predefined_metric = local.is_target_tracking_scaling ? try(var.target_tracking_configuration["scaling_behaviors"]["predefined_metric_type"], null) != null : false
 
   comparison_operators = {
     ">=" = "GreaterThanOrEqualToThreshold",

@@ -1,18 +1,284 @@
+# Terraform AWS ECS Fargate Service Module
+
+## TargetTrackingScaling 
+
+```tf
+  # Predefined Metrics
+  target_tracking_configuration = {
+    policy_type = "TargetTrackingScaling"
+    name        = "cpu-average"
+    capacity = {
+      min_capacity = 1
+      max_capacity = 10
+    }
+    scaling_behaviors = {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+      target_value           = 60
+      scale_in_cooldown      = 180
+      scale_out_cooldown     = 60
+    }
+  }
+
+  # Customization Metrics
+  target_tracking_configuration = {
+    policy_type = "TargetTrackingScaling"
+    name        = "concurrency-per-task"
+    capacity = {
+      min_capacity = 1
+      max_capacity = 10
+    }
+    scaling_behaviors = {
+      target_value       = 1500
+      scale_in_cooldown  = 180
+      scale_out_cooldown = 60
+      custom_metrics = {
+        active_connection_count = {
+          id          = "acc"
+          label       = "Get value of ActiveConnectionCount metric"
+          return_data = false
+          metric_stat = {
+            stat        = "Sum"
+            metric_name = "ActiveConnectionCount"
+            namespace   = "AWS/ApplicationELB"
+            dimensions = [
+              {
+                name  = "LoadBalancer"
+                value = "app/oozou-devops-demo-alb/f0f65a9c9ea681e0"
+              }
+            ]
+          }
+        }
+        running_task_count = {
+          id          = "rtc"
+          label       = "Get value of RunningTaskCount metric"
+          return_data = false
+          metric_stat = {
+            stat        = "Average"
+            metric_name = "RunningTaskCount"
+            namespace   = "ECS/ContainerInsights"
+            dimensions = [
+              {
+                name  = "ServiceName"
+                value = "oozou-devops-demo-service-api"
+              },
+              {
+                name  = "ClusterName"
+                value = "oozou-devops-demo-cluster"
+              },
+            ]
+          }
+        }
+        scaling_expression = {
+          id          = "e1"
+          label       = "ActiveConnectionCount/RunningTaskCount"
+          expression  = "(acc)/rtc"
+          return_data = true
+        }
+      }
+    }
+  }
+```
+
+## StepScaling
+
+```tf
+  # Predefined Metrics
+  step_scaling_configuration = {
+    policy_type = "StepScaling"
+    capacity = {
+      min_capacity = 1
+      max_capacity = 10
+    }
+    scaling_behaviors = {
+      cpu_up = {
+        metric_name         = "CPUUtilization"
+        namespace           = "AWS/ECS"
+        statistic           = "Average"
+        comparison_operator = ">="
+        threshold           = "60"
+        period              = "60"
+        evaluation_periods  = "1"
+        cooldown            = 60
+        # If value in (threshold+lower_bound, threshold+upper_bound), in crease scaling_adjustment
+        step_adjustment = [
+          {
+            # (60, 80) increase 1
+            metric_interval_lower_bound = 0
+            metric_interval_upper_bound = 20
+            scaling_adjustment          = 1
+          },
+          {
+            # (80, n) increase 2
+            metric_interval_lower_bound = 20
+            scaling_adjustment          = 2
+          }
+        ]
+      }
+      cpu_down = {
+        metric_name         = "CPUUtilization"
+        namespace           = "AWS/ECS"
+        statistic           = "Average"
+        comparison_operator = "<="
+        threshold           = "40"
+        period              = "60"
+        evaluation_periods  = "2"
+        cooldown            = 120
+        step_adjustment = [
+          # If value in (threshold+lower_bound, threshold+upper_bound), in crease scaling_adjustment
+          {
+            metric_interval_upper_bound = 0.0
+            scaling_adjustment          = -1
+          }
+        ]
+      }
+    }
+  }
+
+  # Customization Metrics
+  step_scaling_configuration = {
+    policy_type = "StepScaling"
+    capacity = {
+      min_capacity = 1
+      max_capacity = 10
+    }
+    scaling_behaviors = {
+      scaling_up = {
+        metric_query = [
+          {
+            id = "acc"
+            metric = [
+              {
+                metric_name = "RunningTaskCount"
+                namespace   = "ECS/ContainerInsights"
+                period      = "60"
+                stat        = "Average"
+                dimensions = {
+                  ClusterName = "oozou-devops-demo-cluster"
+                  ServiceName = "oozou-devops-demo-service-api"
+                }
+              }
+            ]
+          },
+          {
+            id = "rtc"
+            metric = [
+              {
+                metric_name = "RunningTaskCount"
+                namespace   = "ECS/ContainerInsights"
+                period      = "60"
+                stat        = "Average"
+                dimensions = {
+                  ClusterName = "oozou-devops-demo-cluster"
+                  ServiceName = "oozou-devops-demo-service-api"
+                }
+              }
+            ]
+          },
+          {
+            id          = "e1"
+            expression  = "acc/rtc"
+            label       = "ActiveConnectionCount/RunningTaskCount"
+            return_data = true
+          }
+        ]
+        statistic           = "Average"
+        comparison_operator = ">="
+        evaluation_periods  = "1"
+        threshold           = 1500
+        cooldown            = 60
+        # If value in (threshold+lower_bound, threshold+upper_bound), in crease scaling_adjustment
+        step_adjustment = [
+          {
+            # (1500, 2500) increase 1
+            metric_interval_lower_bound = 0
+            metric_interval_upper_bound = 1000
+            scaling_adjustment          = 1
+          },
+          {
+            # (2500, 4500) increase 2
+            metric_interval_lower_bound = 1000
+            metric_interval_upper_bound = 3000
+            scaling_adjustment          = 2
+          },
+          {
+            # (4500, n) increase 4
+            metric_interval_lower_bound = 3000
+            scaling_adjustment          = 4
+          }
+        ]
+      }
+      cpu_down = {
+        metric_query = [
+          {
+            id = "acc"
+            metric = [
+              {
+                metric_name = "RunningTaskCount"
+                namespace   = "ECS/ContainerInsights"
+                period      = "60"
+                stat        = "Average"
+                dimensions = {
+                  ClusterName = "oozou-devops-demo-cluster"
+                  ServiceName = "oozou-devops-demo-service-api"
+                }
+              }
+            ]
+          },
+          {
+            id = "rtc"
+            metric = [
+              {
+                metric_name = "RunningTaskCount"
+                namespace   = "ECS/ContainerInsights"
+                period      = "60"
+                stat        = "Average"
+                dimensions = {
+                  ClusterName = "oozou-devops-demo-cluster"
+                  ServiceName = "oozou-devops-demo-service-api"
+                }
+              }
+            ]
+          },
+          {
+            id          = "e1"
+            expression  = "acc/rtc"
+            label       = "ActiveConnectionCount/RunningTaskCount"
+            return_data = true
+          }
+        ]
+        statistic           = "Average"
+        comparison_operator = "<="
+        evaluation_periods  = "1"
+        threshold           = 1300
+        cooldown            = 60
+        # If value in (threshold+lower_bound, threshold+upper_bound), in crease scaling_adjustment
+        step_adjustment = [
+          {
+            # (0, 1300) increase 1
+            metric_interval_upper_bound = 0
+            scaling_adjustment          = -1
+          }
+        ]
+      }
+    }
+  }
+```
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
 | Name                                                                      | Version  |
 |---------------------------------------------------------------------------|----------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0.0 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws)                   | >= 4.00  |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws)                   | >= 4.0.0 |
 | <a name="requirement_random"></a> [random](#requirement\_random)          | >= 2.3.0 |
 
 ## Providers
 
 | Name                                                       | Version |
 |------------------------------------------------------------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws)          | 4.50.0  |
-| <a name="provider_random"></a> [random](#provider\_random) | 3.4.3   |
+| <a name="provider_aws"></a> [aws](#provider\_aws)          | 4.67.0  |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.5.1   |
 
 ## Modules
 
@@ -49,50 +315,52 @@
 
 ## Inputs
 
-| Name                                                                                                                                                                                     | Description                                                                                                                                                                                                                                                                                         | Type                                                                                                                                                                                      | Default                                                                                                    | Required |
-|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|:--------:|
-| <a name="input_additional_ecs_task_execution_role_policy_arns"></a> [additional\_ecs\_task\_execution\_role\_policy\_arns](#input\_additional\_ecs\_task\_execution\_role\_policy\_arns) | List of policies ARNs to attach to the ECS Task Role. eg: { rds\_arn = module.postgres\_db.rds\_policy\_arn }                                                                                                                                                                                       | `list(string)`                                                                                                                                                                            | `[]`                                                                                                       |    no    |
-| <a name="input_additional_ecs_task_role_policy_arns"></a> [additional\_ecs\_task\_role\_policy\_arns](#input\_additional\_ecs\_task\_role\_policy\_arns)                                 | List of policies ARNs to attach to the ECS Task Role. eg: { rds\_arn = module.postgres\_db.rds\_policy\_arn }                                                                                                                                                                                       | `list(string)`                                                                                                                                                                            | `[]`                                                                                                       |    no    |
-| <a name="input_alb_host_header"></a> [alb\_host\_header](#input\_alb\_host\_header)                                                                                                      | Mention host header for api endpoint                                                                                                                                                                                                                                                                | `string`                                                                                                                                                                                  | `null`                                                                                                     |    no    |
-| <a name="input_alb_listener_arn"></a> [alb\_listener\_arn](#input\_alb\_listener\_arn)                                                                                                   | The ALB listener to attach to                                                                                                                                                                                                                                                                       | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
-| <a name="input_alb_paths"></a> [alb\_paths](#input\_alb\_paths)                                                                                                                          | Mention list Path For ALB routing eg: ["/"] or ["/route1"]                                                                                                                                                                                                                                          | `list(string)`                                                                                                                                                                            | `[]`                                                                                                       |    no    |
-| <a name="input_alb_priority"></a> [alb\_priority](#input\_alb\_priority)                                                                                                                 | Priority of ALB rule https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#listener-rules                                                                                                                                                                | `string`                                                                                                                                                                                  | `"100"`                                                                                                    |    no    |
-| <a name="input_apm_config"></a> [apm\_config](#input\_apm\_config)                                                                                                                       | Config for X-Ray sidecar container for APM and traceability                                                                                                                                                                                                                                         | <pre>object({<br>    service_port = number<br>    cpu          = number<br>    memory       = number<br>  })</pre>                                                                        | <pre>{<br>  "cpu": 256,<br>  "memory": 512,<br>  "service_port": 9000<br>}</pre>                           |    no    |
-| <a name="input_apm_sidecar_ecr_url"></a> [apm\_sidecar\_ecr\_url](#input\_apm\_sidecar\_ecr\_url)                                                                                        | [Optional] To enable APM, set Sidecar ECR URL                                                                                                                                                                                                                                                       | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
-| <a name="input_application_subnet_ids"></a> [application\_subnet\_ids](#input\_application\_subnet\_ids)                                                                                 | Subnet IDs to deploy into                                                                                                                                                                                                                                                                           | `list(string)`                                                                                                                                                                            | n/a                                                                                                        |   yes    |
-| <a name="input_capacity_provider_strategy"></a> [capacity\_provider\_strategy](#input\_capacity\_provider\_strategy)                                                                     | Capacity provider strategies to use for the service EC2 Autoscaling group                                                                                                                                                                                                                           | `map(any)`                                                                                                                                                                                | `null`                                                                                                     |    no    |
-| <a name="input_cloudwatch_log_kms_key_id"></a> [cloudwatch\_log\_kms\_key\_id](#input\_cloudwatch\_log\_kms\_key\_id)                                                                    | The ARN for the KMS encryption key.                                                                                                                                                                                                                                                                 | `string`                                                                                                                                                                                  | `null`                                                                                                     |    no    |
-| <a name="input_cloudwatch_log_retention_in_days"></a> [cloudwatch\_log\_retention\_in\_days](#input\_cloudwatch\_log\_retention\_in\_days)                                               | Retention day for cloudwatch log group                                                                                                                                                                                                                                                              | `number`                                                                                                                                                                                  | `90`                                                                                                       |    no    |
-| <a name="input_command"></a> [command](#input\_command)                                                                                                                                  | Command to override                                                                                                                                                                                                                                                                                 | `list(string)`                                                                                                                                                                            | `[]`                                                                                                       |    no    |
-| <a name="input_custom_header_token"></a> [custom\_header\_token](#input\_custom\_header\_token)                                                                                          | [Required] Specify secret value for custom header                                                                                                                                                                                                                                                   | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
-| <a name="input_deployment_circuit_breaker"></a> [deployment\_circuit\_breaker](#input\_deployment\_circuit\_breaker)                                                                     | Configuration block for deployment circuit breaker                                                                                                                                                                                                                                                  | <pre>object({<br>    enable   = bool<br>    rollback = bool<br>  })</pre>                                                                                                                 | <pre>{<br>  "enable": true,<br>  "rollback": true<br>}</pre>                                               |    no    |
-| <a name="input_ecs_cluster_name"></a> [ecs\_cluster\_name](#input\_ecs\_cluster\_name)                                                                                                   | ECS Cluster name to deploy in                                                                                                                                                                                                                                                                       | `string`                                                                                                                                                                                  | n/a                                                                                                        |   yes    |
-| <a name="input_efs_volumes"></a> [efs\_volumes](#input\_efs\_volumes)                                                                                                                    | Task EFS volume definitions as list of configuration objects. You cannot define both Docker volumes and EFS volumes on the same task definition.                                                                                                                                                    | `list(any)`                                                                                                                                                                               | `[]`                                                                                                       |    no    |
-| <a name="input_entry_point"></a> [entry\_point](#input\_entry\_point)                                                                                                                    | Entrypoint to override                                                                                                                                                                                                                                                                              | `list(string)`                                                                                                                                                                            | `[]`                                                                                                       |    no    |
-| <a name="input_environment"></a> [environment](#input\_environment)                                                                                                                      | (Optional) Environment as a part of format("%s-%s-%s-cf", var.prefix, var.environment, var.name); ex. xxx-prod-xxx-cf                                                                                                                                                                               | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
-| <a name="input_environment_variables"></a> [environment\_variables](#input\_environment\_variables)                                                                                      | Map of environment varaibles ex. { RDS\_ENDPOINT = "admin@rds@123"}                                                                                                                                                                                                                                 | `map(any)`                                                                                                                                                                                | `{}`                                                                                                       |    no    |
-| <a name="input_exists_task_execution_role_arn"></a> [exists\_task\_execution\_role\_arn](#input\_exists\_task\_execution\_role\_arn)                                                     | The existing arn of task exec role                                                                                                                                                                                                                                                                  | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
-| <a name="input_exists_task_role_arn"></a> [exists\_task\_role\_arn](#input\_exists\_task\_role\_arn)                                                                                     | The existing arn of task role                                                                                                                                                                                                                                                                       | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
-| <a name="input_health_check"></a> [health\_check](#input\_health\_check)                                                                                                                 | Health Check Config for the service                                                                                                                                                                                                                                                                 | `map(string)`                                                                                                                                                                             | `{}`                                                                                                       |    no    |
-| <a name="input_is_application_scratch_volume_enabled"></a> [is\_application\_scratch\_volume\_enabled](#input\_is\_application\_scratch\_volume\_enabled)                                | To enabled the temporary storage for the service                                                                                                                                                                                                                                                    | `bool`                                                                                                                                                                                    | `false`                                                                                                    |    no    |
-| <a name="input_is_attach_service_with_lb"></a> [is\_attach\_service\_with\_lb](#input\_is\_attach\_service\_with\_lb)                                                                    | Attach the container to the public ALB? (true/false)                                                                                                                                                                                                                                                | `bool`                                                                                                                                                                                    | n/a                                                                                                        |   yes    |
-| <a name="input_is_create_cloudwatch_log_group"></a> [is\_create\_cloudwatch\_log\_group](#input\_is\_create\_cloudwatch\_log\_group)                                                     | Whether to create cloudwatch log group or not                                                                                                                                                                                                                                                       | `bool`                                                                                                                                                                                    | `true`                                                                                                     |    no    |
-| <a name="input_is_create_iam_role"></a> [is\_create\_iam\_role](#input\_is\_create\_iam\_role)                                                                                           | Create the built in IAM role for task role and task exec role                                                                                                                                                                                                                                       | `bool`                                                                                                                                                                                    | `true`                                                                                                     |    no    |
-| <a name="input_is_enable_execute_command"></a> [is\_enable\_execute\_command](#input\_is\_enable\_execute\_command)                                                                      | Specifies whether to enable Amazon ECS Exec for the tasks within the service.                                                                                                                                                                                                                       | `bool`                                                                                                                                                                                    | `false`                                                                                                    |    no    |
-| <a name="input_name"></a> [name](#input\_name)                                                                                                                                           | (Optional) Name as a part of format("%s-%s-%s-cf", var.prefix, var.environment, var.name); ex. xxx-xxx-cms-cf                                                                                                                                                                                       | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
-| <a name="input_name_override"></a> [name\_override](#input\_name\_override)                                                                                                              | (Optional) Full name to override usage from format("%s-%s-%s-cf", var.prefix, var.environment, var.name)                                                                                                                                                                                            | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
-| <a name="input_ordered_placement_strategy"></a> [ordered\_placement\_strategy](#input\_ordered\_placement\_strategy)                                                                     | Service level strategy rules that are taken into consideration during task placement                                                                                                                                                                                                                | <pre>set(object({<br>    type  = string<br>    field = string<br>  }))</pre>                                                                                                              | <pre>[<br>  {<br>    "field": "attribute:ecs.availability-zone",<br>    "type": "spread"<br>  }<br>]</pre> |    no    |
-| <a name="input_prefix"></a> [prefix](#input\_prefix)                                                                                                                                     | (Optional) Prefix as a part of format("%s-%s-%s-cf", var.prefix, var.environment, var.name); ex. oozou-xxx-xxx-cf                                                                                                                                                                                   | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
-| <a name="input_scaling_configuration"></a> [scaling\_configuration](#input\_scaling\_configuration)                                                                                      | configuration of scaling configuration support both target tracking and step scaling policies<br>  https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PredefinedMetricSpecification.html<br>  https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cloudwatch-metrics.html | `any`                                                                                                                                                                                     | `{}`                                                                                                       |    no    |
-| <a name="input_secret_variables"></a> [secret\_variables](#input\_secret\_variables)                                                                                                     | Map of secret name(as reflected in Secrets Manager) and secret JSON string associated                                                                                                                                                                                                               | `map(string)`                                                                                                                                                                             | `{}`                                                                                                       |    no    |
-| <a name="input_security_groups"></a> [security\_groups](#input\_security\_groups)                                                                                                        | Security groups to apply to service                                                                                                                                                                                                                                                                 | `list(string)`                                                                                                                                                                            | n/a                                                                                                        |   yes    |
-| <a name="input_service_count"></a> [service\_count](#input\_service\_count)                                                                                                              | Number of containers to deploy                                                                                                                                                                                                                                                                      | `number`                                                                                                                                                                                  | `1`                                                                                                        |    no    |
-| <a name="input_service_discovery_namespace"></a> [service\_discovery\_namespace](#input\_service\_discovery\_namespace)                                                                  | DNS Namespace to deploy to                                                                                                                                                                                                                                                                          | `string`                                                                                                                                                                                  | n/a                                                                                                        |   yes    |
-| <a name="input_service_info"></a> [service\_info](#input\_service\_info)                                                                                                                 | The configuration of service                                                                                                                                                                                                                                                                        | <pre>object({<br>    cpu_allocation = number<br>    mem_allocation = number<br>    port           = number<br>    image          = string<br>    mount_points   = list(any)<br>  })</pre> | n/a                                                                                                        |   yes    |
-| <a name="input_tags"></a> [tags](#input\_tags)                                                                                                                                           | Custom tags which can be passed on to the AWS resources. They should be key value pairs having distinct keys                                                                                                                                                                                        | `map(any)`                                                                                                                                                                                | `{}`                                                                                                       |    no    |
-| <a name="input_target_group_deregistration_delay"></a> [target\_group\_deregistration\_delay](#input\_target\_group\_deregistration\_delay)                                              | (Optional) Amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused. The range is 0-3600 seconds. The default value is 300 seconds.                                                                                               | `number`                                                                                                                                                                                  | `300`                                                                                                      |    no    |
-| <a name="input_unix_max_connection"></a> [unix\_max\_connection](#input\_unix\_max\_connection)                                                                                          | Number of net.core.somaxconn                                                                                                                                                                                                                                                                        | `number`                                                                                                                                                                                  | `4096`                                                                                                     |    no    |
-| <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id)                                                                                                                                   | VPC id where security group is created                                                                                                                                                                                                                                                              | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
+| Name                                                                                                                                                                                     | Description                                                                                                                                                                                           | Type                                                                                                                                                                                      | Default                                                                                                    | Required |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|:--------:|
+| <a name="input_additional_ecs_task_execution_role_policy_arns"></a> [additional\_ecs\_task\_execution\_role\_policy\_arns](#input\_additional\_ecs\_task\_execution\_role\_policy\_arns) | List of policies ARNs to attach to the ECS Task Role. eg: { rds\_arn = module.postgres\_db.rds\_policy\_arn }                                                                                         | `list(string)`                                                                                                                                                                            | `[]`                                                                                                       |    no    |
+| <a name="input_additional_ecs_task_role_policy_arns"></a> [additional\_ecs\_task\_role\_policy\_arns](#input\_additional\_ecs\_task\_role\_policy\_arns)                                 | List of policies ARNs to attach to the ECS Task Role. eg: { rds\_arn = module.postgres\_db.rds\_policy\_arn }                                                                                         | `list(string)`                                                                                                                                                                            | `[]`                                                                                                       |    no    |
+| <a name="input_alb_host_header"></a> [alb\_host\_header](#input\_alb\_host\_header)                                                                                                      | Mention host header for api endpoint                                                                                                                                                                  | `string`                                                                                                                                                                                  | `null`                                                                                                     |    no    |
+| <a name="input_alb_listener_arn"></a> [alb\_listener\_arn](#input\_alb\_listener\_arn)                                                                                                   | The ALB listener to attach to                                                                                                                                                                         | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
+| <a name="input_alb_paths"></a> [alb\_paths](#input\_alb\_paths)                                                                                                                          | Mention list Path For ALB routing eg: ["/"] or ["/route1"]                                                                                                                                            | `list(string)`                                                                                                                                                                            | `[]`                                                                                                       |    no    |
+| <a name="input_alb_priority"></a> [alb\_priority](#input\_alb\_priority)                                                                                                                 | Priority of ALB rule https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#listener-rules                                                                  | `string`                                                                                                                                                                                  | `"100"`                                                                                                    |    no    |
+| <a name="input_apm_config"></a> [apm\_config](#input\_apm\_config)                                                                                                                       | Config for X-Ray sidecar container for APM and traceability                                                                                                                                           | <pre>object({<br>    service_port = number<br>    cpu          = number<br>    memory       = number<br>  })</pre>                                                                        | <pre>{<br>  "cpu": 256,<br>  "memory": 512,<br>  "service_port": 9000<br>}</pre>                           |    no    |
+| <a name="input_apm_sidecar_ecr_url"></a> [apm\_sidecar\_ecr\_url](#input\_apm\_sidecar\_ecr\_url)                                                                                        | [Optional] To enable APM, set Sidecar ECR URL                                                                                                                                                         | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
+| <a name="input_application_subnet_ids"></a> [application\_subnet\_ids](#input\_application\_subnet\_ids)                                                                                 | Subnet IDs to deploy into                                                                                                                                                                             | `list(string)`                                                                                                                                                                            | n/a                                                                                                        |   yes    |
+| <a name="input_capacity_provider_strategy"></a> [capacity\_provider\_strategy](#input\_capacity\_provider\_strategy)                                                                     | Capacity provider strategies to use for the service EC2 Autoscaling group                                                                                                                             | `map(any)`                                                                                                                                                                                | `null`                                                                                                     |    no    |
+| <a name="input_cloudwatch_log_kms_key_id"></a> [cloudwatch\_log\_kms\_key\_id](#input\_cloudwatch\_log\_kms\_key\_id)                                                                    | The ARN for the KMS encryption key.                                                                                                                                                                   | `string`                                                                                                                                                                                  | `null`                                                                                                     |    no    |
+| <a name="input_cloudwatch_log_retention_in_days"></a> [cloudwatch\_log\_retention\_in\_days](#input\_cloudwatch\_log\_retention\_in\_days)                                               | Retention day for cloudwatch log group                                                                                                                                                                | `number`                                                                                                                                                                                  | `90`                                                                                                       |    no    |
+| <a name="input_command"></a> [command](#input\_command)                                                                                                                                  | Command to override                                                                                                                                                                                   | `list(string)`                                                                                                                                                                            | `[]`                                                                                                       |    no    |
+| <a name="input_custom_header_token"></a> [custom\_header\_token](#input\_custom\_header\_token)                                                                                          | [Required] Specify secret value for custom header                                                                                                                                                     | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
+| <a name="input_deployment_circuit_breaker"></a> [deployment\_circuit\_breaker](#input\_deployment\_circuit\_breaker)                                                                     | Configuration block for deployment circuit breaker                                                                                                                                                    | <pre>object({<br>    enable   = bool<br>    rollback = bool<br>  })</pre>                                                                                                                 | <pre>{<br>  "enable": true,<br>  "rollback": true<br>}</pre>                                               |    no    |
+| <a name="input_ecs_cluster_name"></a> [ecs\_cluster\_name](#input\_ecs\_cluster\_name)                                                                                                   | ECS Cluster name to deploy in                                                                                                                                                                         | `string`                                                                                                                                                                                  | n/a                                                                                                        |   yes    |
+| <a name="input_efs_volumes"></a> [efs\_volumes](#input\_efs\_volumes)                                                                                                                    | Task EFS volume definitions as list of configuration objects. You cannot define both Docker volumes and EFS volumes on the same task definition.                                                      | `list(any)`                                                                                                                                                                               | `[]`                                                                                                       |    no    |
+| <a name="input_entry_point"></a> [entry\_point](#input\_entry\_point)                                                                                                                    | Entrypoint to override                                                                                                                                                                                | `list(string)`                                                                                                                                                                            | `[]`                                                                                                       |    no    |
+| <a name="input_environment"></a> [environment](#input\_environment)                                                                                                                      | (Optional) Environment as a part of format("%s-%s-%s-cf", var.prefix, var.environment, var.name); ex. xxx-prod-xxx-cf                                                                                 | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
+| <a name="input_environment_variables"></a> [environment\_variables](#input\_environment\_variables)                                                                                      | Map of environment varaibles ex. { RDS\_ENDPOINT = "admin@rds@123"}                                                                                                                                   | `map(any)`                                                                                                                                                                                | `{}`                                                                                                       |    no    |
+| <a name="input_exists_task_execution_role_arn"></a> [exists\_task\_execution\_role\_arn](#input\_exists\_task\_execution\_role\_arn)                                                     | The existing arn of task exec role                                                                                                                                                                    | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
+| <a name="input_exists_task_role_arn"></a> [exists\_task\_role\_arn](#input\_exists\_task\_role\_arn)                                                                                     | The existing arn of task role                                                                                                                                                                         | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
+| <a name="input_health_check"></a> [health\_check](#input\_health\_check)                                                                                                                 | Health Check Config for the service                                                                                                                                                                   | `map(string)`                                                                                                                                                                             | `{}`                                                                                                       |    no    |
+| <a name="input_is_application_scratch_volume_enabled"></a> [is\_application\_scratch\_volume\_enabled](#input\_is\_application\_scratch\_volume\_enabled)                                | To enabled the temporary storage for the service                                                                                                                                                      | `bool`                                                                                                                                                                                    | `false`                                                                                                    |    no    |
+| <a name="input_is_attach_service_with_lb"></a> [is\_attach\_service\_with\_lb](#input\_is\_attach\_service\_with\_lb)                                                                    | Attach the container to the public ALB? (true/false)                                                                                                                                                  | `bool`                                                                                                                                                                                    | n/a                                                                                                        |   yes    |
+| <a name="input_is_create_cloudwatch_log_group"></a> [is\_create\_cloudwatch\_log\_group](#input\_is\_create\_cloudwatch\_log\_group)                                                     | Whether to create cloudwatch log group or not                                                                                                                                                         | `bool`                                                                                                                                                                                    | `true`                                                                                                     |    no    |
+| <a name="input_is_create_iam_role"></a> [is\_create\_iam\_role](#input\_is\_create\_iam\_role)                                                                                           | Create the built in IAM role for task role and task exec role                                                                                                                                         | `bool`                                                                                                                                                                                    | `true`                                                                                                     |    no    |
+| <a name="input_is_enable_execute_command"></a> [is\_enable\_execute\_command](#input\_is\_enable\_execute\_command)                                                                      | Specifies whether to enable Amazon ECS Exec for the tasks within the service.                                                                                                                         | `bool`                                                                                                                                                                                    | `false`                                                                                                    |    no    |
+| <a name="input_name"></a> [name](#input\_name)                                                                                                                                           | (Optional) Name as a part of format("%s-%s-%s-cf", var.prefix, var.environment, var.name); ex. xxx-xxx-cms-cf                                                                                         | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
+| <a name="input_name_override"></a> [name\_override](#input\_name\_override)                                                                                                              | (Optional) Full name to override usage from format("%s-%s-%s-cf", var.prefix, var.environment, var.name)                                                                                              | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
+| <a name="input_ordered_placement_strategy"></a> [ordered\_placement\_strategy](#input\_ordered\_placement\_strategy)                                                                     | Service level strategy rules that are taken into consideration during task placement                                                                                                                  | <pre>set(object({<br>    type  = string<br>    field = string<br>  }))</pre>                                                                                                              | <pre>[<br>  {<br>    "field": "attribute:ecs.availability-zone",<br>    "type": "spread"<br>  }<br>]</pre> |    no    |
+| <a name="input_prefix"></a> [prefix](#input\_prefix)                                                                                                                                     | (Optional) Prefix as a part of format("%s-%s-%s-cf", var.prefix, var.environment, var.name); ex. oozou-xxx-xxx-cf                                                                                     | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
+| <a name="input_propagate_tags"></a> [propagate\_tags](#input\_propagate\_tags)                                                                                                           | (Optional) Specifies whether to propagate the tags from the task definition or the service to the tasks. The valid values are SERVICE and TASK\_DEFINITION.                                           | `string`                                                                                                                                                                                  | `"TASK_DEFINITION"`                                                                                        |    no    |
+| <a name="input_secret_variables"></a> [secret\_variables](#input\_secret\_variables)                                                                                                     | Map of secret name(as reflected in Secrets Manager) and secret JSON string associated                                                                                                                 | `map(string)`                                                                                                                                                                             | `{}`                                                                                                       |    no    |
+| <a name="input_security_groups"></a> [security\_groups](#input\_security\_groups)                                                                                                        | Security groups to apply to service                                                                                                                                                                   | `list(string)`                                                                                                                                                                            | n/a                                                                                                        |   yes    |
+| <a name="input_service_count"></a> [service\_count](#input\_service\_count)                                                                                                              | Number of containers to deploy                                                                                                                                                                        | `number`                                                                                                                                                                                  | `1`                                                                                                        |    no    |
+| <a name="input_service_discovery_namespace"></a> [service\_discovery\_namespace](#input\_service\_discovery\_namespace)                                                                  | DNS Namespace to deploy to                                                                                                                                                                            | `string`                                                                                                                                                                                  | n/a                                                                                                        |   yes    |
+| <a name="input_service_info"></a> [service\_info](#input\_service\_info)                                                                                                                 | The configuration of service                                                                                                                                                                          | <pre>object({<br>    cpu_allocation = number<br>    mem_allocation = number<br>    port           = number<br>    image          = string<br>    mount_points   = list(any)<br>  })</pre> | n/a                                                                                                        |   yes    |
+| <a name="input_step_scaling_configuration"></a> [step\_scaling\_configuration](#input\_step\_scaling\_configuration)                                                                     | (optional) Define step scaling behaviour, example in README                                                                                                                                           | `any`                                                                                                                                                                                     | `{}`                                                                                                       |    no    |
+| <a name="input_tags"></a> [tags](#input\_tags)                                                                                                                                           | Custom tags which can be passed on to the AWS resources. They should be key value pairs having distinct keys                                                                                          | `map(any)`                                                                                                                                                                                | `{}`                                                                                                       |    no    |
+| <a name="input_target_group_deregistration_delay"></a> [target\_group\_deregistration\_delay](#input\_target\_group\_deregistration\_delay)                                              | (Optional) Amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused. The range is 0-3600 seconds. The default value is 300 seconds. | `number`                                                                                                                                                                                  | `300`                                                                                                      |    no    |
+| <a name="input_target_tracking_configuration"></a> [target\_tracking\_configuration](#input\_target\_tracking\_configuration)                                                            | (optional) Define traget tracking behaviour, example in README                                                                                                                                        | `any`                                                                                                                                                                                     | `{}`                                                                                                       |    no    |
+| <a name="input_unix_max_connection"></a> [unix\_max\_connection](#input\_unix\_max\_connection)                                                                                          | Number of net.core.somaxconn                                                                                                                                                                          | `number`                                                                                                                                                                                  | `4096`                                                                                                     |    no    |
+| <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id)                                                                                                                                   | VPC id where security group is created                                                                                                                                                                | `string`                                                                                                                                                                                  | `""`                                                                                                       |    no    |
 
 ## Outputs
 
