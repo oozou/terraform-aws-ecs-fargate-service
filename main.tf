@@ -69,12 +69,53 @@ resource "aws_iam_role_policy_attachment" "task_execution_role" {
 /* -------------------------------------------------------------------------- */
 /*                                 CloudWatch                                 */
 /* -------------------------------------------------------------------------- */
+data "aws_iam_policy_document" "cloudwatch_log_group_kms_policy" {
+  statement {
+    sid = "AllowCloudWatchToDoCryptography"
+    actions = [
+      "kms:Encrypt*",
+      "kms:Decrypt*",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:Describe*"
+    ]
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = tolist([format("logs.%s.amazonaws.com", data.aws_region.this.name)])
+    }
+
+    condition {
+      test     = "ArnEquals"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = [format("arn:aws:logs:%s:%s:log-group:%s", data.aws_region.this.name, data.aws_caller_identity.this.account_id, local.log_group_name)]
+    }
+  }
+}
+
+module "cloudwatch_log_group_kms" {
+  count   = var.is_create_cloudwatch_log_group && var.is_create_default_kms && var.cloudwatch_log_group_kms_key_arn == null ? 1 : 0
+  source  = "oozou/kms-key/aws"
+  version = "1.0.0"
+
+  prefix               = var.prefix
+  environment          = var.environment
+  name                 = format("%s-log-group", var.name)
+  key_type             = "service"
+  append_random_suffix = true
+  description          = format("Secure Secrets Manager's service secrets for service %s", local.name)
+  additional_policies  = [data.aws_iam_policy_document.cloudwatch_log_group_kms_policy.json]
+
+  tags = merge(local.tags, { "Name" : format("%s-log-group", local.name) })
+}
+
 resource "aws_cloudwatch_log_group" "this" {
   count = var.is_create_cloudwatch_log_group ? 1 : 0
 
   name              = local.log_group_name
   retention_in_days = var.cloudwatch_log_retention_in_days
-  kms_key_id        = var.cloudwatch_log_kms_key_id
+  kms_key_id        = local.cloudwatch_log_group_kms_key_arn
 
   tags = merge(local.tags, { "Name" = local.log_group_name })
 }
@@ -82,14 +123,13 @@ resource "aws_cloudwatch_log_group" "this" {
 /* -------------------------------------------------------------------------- */
 /*                                Load Balancer                               */
 /* -------------------------------------------------------------------------- */
-/* ----------------------------- LB Target Group ---------------------------- */
 resource "aws_lb_target_group" "this" {
-  count = var.is_attach_service_with_lb ? 1 : 0
+  count = local.is_create_target_group ? 1 : 0
 
-  name = format("%s-tg", substr(local.name, 0, min(29, length(local.name))))
+  name = format("%s-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name))))
 
-  port                 = var.service_info.port
-  protocol             = var.service_info.port == 443 ? "HTTPS" : "HTTP"
+  port                 = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port
+  protocol             = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port == 443 ? "HTTPS" : "HTTP"
   vpc_id               = var.vpc_id
   target_type          = "ip"
   deregistration_delay = var.target_group_deregistration_delay
@@ -103,11 +143,11 @@ resource "aws_lb_target_group" "this" {
     matcher             = lookup(var.health_check, "matcher", null)
   }
 
-  tags = merge(local.tags, { "Name" = format("%s-tg", local.name) })
+  tags = merge(local.tags, { "Name" = format("%s-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name)))) })
 }
 /* ------------------------------ Listener Rule ----------------------------- */
 resource "aws_lb_listener_rule" "this" {
-  count = var.is_attach_service_with_lb ? 1 : 0
+  count = local.is_create_target_group ? 1 : 0
 
   listener_arn = var.alb_listener_arn
   priority     = var.alb_priority
@@ -167,6 +207,8 @@ module "secret_kms_key" {
 }
 
 resource "random_string" "service_secret_random_suffix" {
+  for_each = var.container
+
   length  = 5
   special = false
 }
@@ -174,25 +216,30 @@ resource "random_string" "service_secret_random_suffix" {
 /* -------------------------------------------------------------------------- */
 /*                                   Secret                                   */
 /* -------------------------------------------------------------------------- */
-resource "aws_secretsmanager_secret" "service_secrets" {
-  name        = "${local.name}/${random_string.service_secret_random_suffix.result}"
+resource "aws_secretsmanager_secret" "this" {
+  for_each = var.container
+
+  name        = "${each.value.name}/${random_string.service_secret_random_suffix[each.key].result}"
   description = "Secret for service ${local.name}"
   kms_key_id  = module.secret_kms_key.key_arn
 
-  tags = merge({ Name = "${local.name}/${random_string.service_secret_random_suffix.result}" }, local.tags)
+  tags = merge({ Name = "${each.value.name}/${random_string.service_secret_random_suffix[each.key].result}" }, local.tags)
 }
 
-resource "aws_secretsmanager_secret_version" "service_secrets" {
-  secret_id     = aws_secretsmanager_secret.service_secrets.id
-  secret_string = jsonencode(var.secret_variables)
+resource "aws_secretsmanager_secret_version" "this" {
+  for_each = var.container
+
+  secret_id     = aws_secretsmanager_secret.this[each.key].id
+  secret_string = jsonencode(try(var.secret_variables[each.key], {}))
 }
 
 # We add a policy to the ECS Task Execution role so that ECS can pull secrets from SecretsManager and
 # inject them as environment variables in the service
-resource "aws_iam_role_policy" "task_execution_secrets" {
-  count = var.is_create_iam_role && length(var.secret_variables) > 0 ? 1 : 0
+resource "aws_iam_role_policy" "task_execution_role_access_secret" {
+  # count    = var.is_create_iam_role && length(var.secret_variables) > 0 ? 1 : 0
+  for_each = var.container
 
-  name = "${local.name}-ecs-task-execution-secrets"
+  name = "${each.value.name}-ecs-task-execution-secrets"
   role = local.task_execution_role_id
 
   policy = <<EOF
@@ -201,7 +248,7 @@ resource "aws_iam_role_policy" "task_execution_secrets" {
       {
         "Effect": "Allow",
         "Action": ["secretsmanager:GetSecretValue"],
-        "Resource": ${jsonencode(format("%s/*", split("/", aws_secretsmanager_secret.service_secrets.arn)[0]))}
+        "Resource": ${jsonencode(format("%s/*", split("/", aws_secretsmanager_secret.this[each.key].arn)[0]))}
       }
     ]
 }
@@ -215,12 +262,12 @@ resource "aws_ecs_task_definition" "this" {
   family                   = local.name
   network_mode             = "awsvpc"
   requires_compatibilities = var.capacity_provider_strategy == null ? ["FARGATE"] : ["EC2"]
-  cpu                      = local.is_apm_enabled ? var.service_info.cpu_allocation + var.apm_config.cpu : var.service_info.cpu_allocation
-  memory                   = local.is_apm_enabled ? var.service_info.mem_allocation + var.apm_config.memory : var.service_info.mem_allocation
+  cpu                      = var.task_cpu
+  memory                   = var.task_memory
   execution_role_arn       = local.task_execution_role_arn
   task_role_arn            = local.task_role_arn
 
-  container_definitions = var.capacity_provider_strategy == null ? local.container_definitions : local.container_definitions_ec2
+  container_definitions = jsonencode(local.container_task_definitions)
 
   dynamic "volume" {
     for_each = local.volumes
@@ -322,11 +369,12 @@ resource "aws_ecs_service" "this" {
   }
 
   dynamic "load_balancer" {
-    for_each = var.is_attach_service_with_lb ? [true] : []
+    for_each = local.is_create_target_group ? [true] : []
+
     content {
       target_group_arn = aws_lb_target_group.this[0].arn
       container_name   = local.name
-      container_port   = var.service_info.port
+      container_port   = local.container_target_group_object.port_mappings[0].container_port
     }
   }
 

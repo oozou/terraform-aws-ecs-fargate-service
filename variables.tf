@@ -79,13 +79,19 @@ variable "is_create_cloudwatch_log_group" {
   default     = true
 }
 
+variable "is_create_default_kms" {
+  description = "Whether to create cloudwatch log group kms or not"
+  type        = bool
+  default     = true
+}
+
 variable "cloudwatch_log_retention_in_days" {
   description = "Retention day for cloudwatch log group"
   type        = number
   default     = 90
 }
 
-variable "cloudwatch_log_kms_key_id" {
+variable "cloudwatch_log_group_kms_key_arn" {
   description = "The ARN for the KMS encryption key."
   type        = string
   default     = null
@@ -94,12 +100,6 @@ variable "cloudwatch_log_kms_key_id" {
 /* -------------------------------------------------------------------------- */
 /*                                LoadBalancer                                */
 /* -------------------------------------------------------------------------- */
-/* ----------------------------- LB Target Group ---------------------------- */
-variable "is_attach_service_with_lb" {
-  description = "Attach the container to the public ALB? (true/false)"
-  type        = bool
-}
-
 variable "target_group_deregistration_delay" {
   description = "(Optional) Amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused. The range is 0-3600 seconds. The default value is 300 seconds."
   type        = number
@@ -157,53 +157,33 @@ variable "custom_header_token" {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                   Secret                                   */
+/*                                Secret & Env                                */
 /* -------------------------------------------------------------------------- */
 variable "secret_variables" {
   description = "Map of secret name(as reflected in Secrets Manager) and secret JSON string associated"
-  type        = map(string)
+  type        = map(map(any))
   default     = {}
 }
 
 variable "environment_variables" {
   description = "Map of environment varaibles ex. { RDS_ENDPOINT = \"admin@rds@123\"}"
-  type        = map(any)
+  type        = map(map(any))
   default     = {}
 }
 
 /* -------------------------------------------------------------------------- */
 /*                               Task Definition                              */
 /* -------------------------------------------------------------------------- */
-variable "service_info" {
-  description = "The configuration of service"
-  type = object({
-    cpu_allocation = number
-    mem_allocation = number
-    port           = number
-    image          = string
-    mount_points   = list(any)
-  })
+variable "task_cpu" {
+  description = "(Require): cpu for task level"
+  type        = number
 }
 
-variable "apm_sidecar_ecr_url" {
-  description = "[Optional] To enable APM, set Sidecar ECR URL"
-  type        = string
-  default     = ""
+variable "task_memory" {
+  description = "(Require): memory for task level"
+  type        = number
 }
 
-variable "apm_config" {
-  description = "Config for X-Ray sidecar container for APM and traceability"
-  type = object({
-    service_port = number
-    cpu          = number
-    memory       = number
-  })
-  default = {
-    service_port = 9000
-    cpu          = 256
-    memory       = 512
-  }
-}
 
 variable "is_application_scratch_volume_enabled" {
   description = "To enabled the temporary storage for the service"
@@ -287,27 +267,6 @@ variable "ordered_placement_strategy" {
   }]
 }
 
-variable "unix_max_connection" {
-  description = "Number of net.core.somaxconn"
-  type        = number
-  default     = 4096
-}
-
-/* -------------------------------------------------------------------------- */
-/*                           Entrypoint and command                           */
-/* -------------------------------------------------------------------------- */
-variable "entry_point" {
-  description = "Entrypoint to override"
-  type        = list(string)
-  default     = []
-}
-
-variable "command" {
-  description = "Command to override"
-  type        = list(string)
-  default     = []
-}
-
 /* -------------------------------------------------------------------------- */
 /*                                   volume                                   */
 /* -------------------------------------------------------------------------- */
@@ -330,4 +289,13 @@ variable "deployment_circuit_breaker" {
     enable   = true
     rollback = true
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                NEW TASK DEF                                */
+/* -------------------------------------------------------------------------- */
+variable "container" {
+  description = "The container(s) that would be rendered in task definition; see example for completion"
+  type        = any
+  default     = {}
 }

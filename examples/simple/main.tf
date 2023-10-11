@@ -1,5 +1,8 @@
 data "aws_caller_identity" "this" {}
-data "aws_region" "this" {}
+
+locals {
+  name = format("%s-%s-%s", var.prefix, var.environment, var.name)
+}
 
 /* -------------------------------------------------------------------------- */
 /*                                     VPC                                    */
@@ -69,65 +72,16 @@ module "fargate_cluster" {
 /* -------------------------------------------------------------------------- */
 /*                                   Service                                  */
 /* -------------------------------------------------------------------------- */
-module "service_api" {
+module "api_service" {
   source = "../.."
 
-  # Generics
   prefix      = var.prefix
   environment = var.environment
-  name        = format("%s-service-api", var.name)
-
-  # IAM Role
-  is_create_iam_role = true
-  additional_ecs_task_role_policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
-  ]
-
-  # ALB
-  is_attach_service_with_lb = true
-  alb_listener_arn          = module.fargate_cluster.alb_listener_http_arn
-  alb_host_header           = null
-  alb_paths                 = ["/*"]
-  alb_priority              = "100"
-  vpc_id                    = module.vpc.vpc_id
-  health_check = {
-    interval            = 20,
-    path                = "/",
-    timeout             = 10,
-    healthy_threshold   = 3,
-    unhealthy_threshold = 3,
-    matcher             = "200,201,204"
-  }
-
-  # Logging
-  is_create_cloudwatch_log_group = true
-
-  # Task definition
-  service_info = {
-    cpu_allocation = 256,
-    mem_allocation = 512,
-    port           = 80,
-    image          = "nginx"
-    mount_points   = []
-  }
-  is_application_scratch_volume_enabled = true
-
-  # Secret and Env
-  environment_variables = {
-    THIS_IS_ENV  = "ENV1",
-    THIS_IS_ENVV = "ENVV",
-  }
-  # WARNING Secret should not be in plain text
-  secret_variables = {
-    THIS_IS_SECRET       = "1xxxxx",
-    THIS_IS_SECRETT      = "2xxxxx",
-    THIS_IS_SECRETTT     = "3xxxxx",
-    THIS_IS_SECRETTTTT   = "4xxxxx",
-    THIS_IS_SECRETTTTTT  = "5xxxxx",
-    THIS_IS_SECRETTTTTTT = "6xxxxx",
-  }
+  name        = format("%s-api-service", var.name)
 
   # ECS service
+  task_cpu                    = 1024
+  task_memory                 = 2048
   ecs_cluster_name            = module.fargate_cluster.ecs_cluster_name
   service_discovery_namespace = module.fargate_cluster.service_discovery_namespace
   is_enable_execute_command   = true
@@ -135,6 +89,165 @@ module "service_api" {
   security_groups = [
     module.fargate_cluster.ecs_task_security_group_id
   ]
+  additional_ecs_task_role_policy_arns = [
+    "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
+  ]
+
+  # ALB
+  alb_listener_arn = module.fargate_cluster.alb_listener_http_arn
+  alb_host_header  = null
+  alb_paths        = ["/*"]
+  alb_priority     = "100"
+  vpc_id           = module.vpc.vpc_id
+  health_check = {
+    interval            = 20,
+    path                = "",
+    timeout             = 10,
+    healthy_threshold   = 3,
+    unhealthy_threshold = 3,
+    matcher             = "200,201,204"
+  }
+
+  is_create_cloudwatch_log_group = true
+
+  container = {
+    main_container = {
+      name            = format("%s-api-service", local.name)
+      image           = "nginx"
+      cpu             = 128
+      memory          = 256
+      is_attach_to_lb = true
+      port_mappings = [
+        {
+          # If a container has multiple ports, index 0 will be used for target group
+          host_port      = 80
+          container_port = 80
+          protocol       = "tcp"
+        }
+      ]
+      entry_point = []
+      command     = []
+    }
+    side_container = {
+      name   = format("%s-nginx", local.name)
+      image  = "tutum/dnsutils"
+      cpu    = 128
+      memory = 256
+      port_mappings = [
+        {
+          host_port      = 443
+          container_port = 443
+          protocol       = "tcp"
+        },
+      ]
+    }
+  }
+  environment_variables = {
+    main_container = {
+      THIS_IS_ENV  = "ENV1",
+      THIS_IS_ENVV = "ENVV",
+    }
+    side_container = {
+      XXXX  = "XXXX",
+      XXXXX = "XXXXX",
+    }
+  }
+  secret_variables = {
+    main_container = {
+      THIS_IS_SECRET  = "1xxxxx",
+      THIS_IS_SECRETT = "2xxxxx",
+    }
+  }
+
+  tags = var.custom_tags
+}
+
+module "payment_service" {
+  source = "../.."
+
+  prefix      = var.prefix
+  environment = var.environment
+  name        = format("%s-api-service", var.name)
+
+  # ECS service
+  task_cpu                    = 1024
+  task_memory                 = 2048
+  ecs_cluster_name            = module.fargate_cluster.ecs_cluster_name
+  service_discovery_namespace = module.fargate_cluster.service_discovery_namespace
+  is_enable_execute_command   = true
+  application_subnet_ids      = module.vpc.private_subnet_ids
+  security_groups = [
+    module.fargate_cluster.ecs_task_security_group_id
+  ]
+  additional_ecs_task_role_policy_arns = [
+    "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
+  ]
+
+  # ALB
+  alb_listener_arn = module.fargate_cluster.alb_listener_http_arn
+  alb_host_header  = null
+  alb_paths        = ["/*"]
+  alb_priority     = "100"
+  vpc_id           = module.vpc.vpc_id
+  health_check = {
+    interval            = 20,
+    path                = "",
+    timeout             = 10,
+    healthy_threshold   = 3,
+    unhealthy_threshold = 3,
+    matcher             = "200,201,204"
+  }
+
+  is_create_cloudwatch_log_group = true
+
+  container = {
+    main_container = {
+      name            = format("%s-api-service", local.name)
+      image           = "nginx"
+      cpu             = 128
+      memory          = 256
+      is_attach_to_lb = true
+      port_mappings = [
+        {
+          # If a container has multiple ports, index 0 will be used for target group
+          host_port      = 80
+          container_port = 80
+          protocol       = "tcp"
+        }
+      ]
+      entry_point = []
+      command     = []
+    }
+    side_container = {
+      name   = format("%s-nginx", local.name)
+      image  = "tutum/dnsutils"
+      cpu    = 128
+      memory = 256
+      port_mappings = [
+        {
+          host_port      = 443
+          container_port = 443
+          protocol       = "tcp"
+        },
+      ]
+    }
+  }
+  environment_variables = {
+    main_container = {
+      THIS_IS_ENV  = "ENV1",
+      THIS_IS_ENVV = "ENVV",
+    }
+    side_container = {
+      XXXX  = "XXXX",
+      XXXXX = "XXXXX",
+    }
+  }
+  secret_variables = {
+    main_container = {
+      THIS_IS_SECRET  = "1xxxxx",
+      THIS_IS_SECRETT = "2xxxxx",
+    }
+  }
 
   tags = var.custom_tags
 }
