@@ -24,13 +24,28 @@ locals {
   # Volume
   volumes = concat(var.efs_volumes)
 
-  # APM
-  is_apm_enabled = signum(length(trimspace(var.apm_sidecar_ecr_url))) == 1
-  apm_name       = "xray-apm-sidecar"
-
   # ECS Service
   ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.this.name}:${data.aws_caller_identity.this.account_id}:cluster/${var.ecs_cluster_name}"
 
+  container_attahced_to_alb_keys = [for key, container in var.container : key if try(container.is_attach_to_lb, false) == true]
+  is_create_target_group         = length(local.container_attahced_to_alb_keys) == 1
+  container_target_group_object  = try(var.container[local.container_attahced_to_alb_keys[0]], {})
+
+  # KMS
+  /*| a | b | (a: enable default kms, b: use custom kms)
+    |---|---|
+    | 0 | 0 | no create
+    | 0 | 1 | use custom kms
+    | 1 | 0 | use default kms
+    | 1 | 1 | use custom kms */
+  cloudwatch_log_group_kms_key_arn = var.is_create_cloudwatch_log_group ? var.cloudwatch_log_group_kms_key_arn != null ? var.cloudwatch_log_group_kms_key_arn : var.is_create_default_kms ? module.cloudwatch_log_group_kms[0].key_arn : null : null
+
+  comparison_operators = {
+    ">=" = "GreaterThanOrEqualToThreshold",
+    ">"  = "GreaterThanThreshold",
+    "<"  = "LessThanThreshold",
+    "<=" = "LessThanOrEqualToThreshold",
+  }
 
   tags = merge(
     {
@@ -47,13 +62,8 @@ locals {
 locals {
   raise_task_role_arn_required           = var.is_create_iam_role == false && length(var.exists_task_role_arn) == 0 ? file("Variable `exists_task_role_arn` is required when `is_create_iam_role` is false") : "pass"
   raise_task_execution_role_arn_required = var.is_create_iam_role == false && length(var.exists_task_execution_role_arn) == 0 ? file("Variable `exists_task_execution_role_arn` is required when `is_create_iam_role` is false") : "pass"
-
-  raise_vpc_id_empty           = var.is_attach_service_with_lb && length(var.vpc_id) == 0 ? file("Variable `vpc_id` is required when `is_attach_service_with_lb` is true") : "pass"
-  raise_service_port_empty     = var.is_attach_service_with_lb && var.service_info.port == null ? file("Variable `service_info.port` is required when `is_attach_service_with_lb` is true") : "pass"
-  raise_health_check_empty     = var.is_attach_service_with_lb && var.health_check == {} ? file("Variable `health_check` is required when `is_attach_service_with_lb` is true") : "pass"
-  raise_alb_listener_arn_empty = var.is_attach_service_with_lb && length(var.alb_listener_arn) == 0 ? file("Variable `alb_listener_arn` is required when `is_attach_service_with_lb` is true") : "pass"
-
-  raise_enable_exec_on_cp = var.is_enable_execute_command && var.capacity_provider_strategy != null ? file("Canot set `is_enable_execute_command` with `capacity_provider_strategy`. Please enabled SSM at EC2 instance profile instead") : "pass"
+  raise_enable_exec_on_cp                = var.is_enable_execute_command && var.capacity_provider_strategy != null ? file("Canot set `is_enable_execute_command` with `capacity_provider_strategy`. Please enabled SSM at EC2 instance profile instead") : "pass"
+  raise_multiple_container_attach_to_alb = length(local.container_attahced_to_alb_keys) > 1 ? file("var.container[*].is_attach_to_lb allow to be true only 1 key; found ${jsonencode(local.container_attahced_to_alb_keys)}") : null
 
   empty_prefix      = var.prefix == "" ? true : false
   empty_environment = var.environment == "" ? true : false
@@ -71,59 +81,52 @@ locals {
       "sourceVolume" : "application_scratch"
     }
   ] : []
-  mount_points = concat(local.mount_points_application_scratch, try(var.service_info.mount_points, []))
 
-  environment_variables = [for key, value in var.environment_variables : { "name" = key, "value" = value }]
-
-  pre_container_definitions_template = {
-    cpu                   = var.service_info.cpu_allocation
-    service_image         = var.service_info.image
-    memory                = var.service_info.mem_allocation
-    log_group_name        = local.log_group_name
-    region                = data.aws_region.this.name
-    name                  = local.name
-    service_port          = var.service_info.port
-    environment_variables = jsonencode(local.environment_variables)
-    secret_variables      = jsonencode(local.secrets_task_definition)
-    entry_point           = jsonencode(var.entry_point)
-    mount_points          = jsonencode(local.mount_points)
-    command               = jsonencode(var.command)
-  }
-  apm_template = {
-    apm_cpu             = var.apm_config.cpu
-    apm_sidecar_ecr_url = var.apm_sidecar_ecr_url
-    apm_memory          = var.apm_config.memory
-    apm_name            = local.apm_name
-    apm_service_port    = var.apm_config.service_port
-  }
-  ec2_template = {
-    unix_max_connection = tostring(var.unix_max_connection)
-  }
-  container_definitions_template = local.is_apm_enabled ? merge(local.pre_container_definitions_template, local.apm_template) : local.pre_container_definitions_template
-  render_container_definitions   = local.is_apm_enabled ? templatefile("${path.module}/task-definitions/service-with-sidecar-container.json", local.container_definitions_template) : templatefile("${path.module}/task-definitions/service-main-container.json", local.container_definitions_template)
-
-  container_definitions     = local.render_container_definitions
-  container_definitions_ec2 = templatefile("${path.module}/task-definitions/service-main-container-ec2.json", merge(local.pre_container_definitions_template, local.ec2_template))
-}
-
-/* -------------------------------------------------------------------------- */
-/*                                   Secret                                   */
-/* -------------------------------------------------------------------------- */
-locals {
-  secrets_task_definition = [for secret_name, secret_value in var.secret_variables : {
-    name      = secret_name,
-    valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.service_secrets.arn, secret_name)
-  }]
-}
-
-/* -------------------------------------------------------------------------- */
-/*                                Auto Scaling                                */
-/* -------------------------------------------------------------------------- */
-locals {
-  comparison_operators = {
-    ">=" = "GreaterThanOrEqualToThreshold",
-    ">"  = "GreaterThanThreshold",
-    "<"  = "LessThanThreshold",
-    "<=" = "LessThanOrEqualToThreshold",
-  }
+  container_task_definitions = [for key, configuration in var.container :
+    {
+      name        = lookup(configuration, "name", null),
+      image       = lookup(configuration, "image", null),
+      networkMode = lookup(configuration, "network_mode", "awsvpc")
+      cpu         = lookup(configuration, "cpu", null)
+      memory      = lookup(configuration, "memory", null)
+      essential   = lookup(configuration, "essential", true)
+      portMappings = [for config in lookup(configuration, "port_mappings", []) :
+        {
+          containerPort = lookup(config, "container_port", null)
+          hostPort      = lookup(config, "host_port", null)
+          protocol      = lookup(config, "protocol", "tcp")
+        }
+      ]
+      mountPoints = [for config in lookup(configuration, "mount_points", []) :
+        {
+          containerPath = lookup(config, "container_path", null)
+          sourceVolume  = lookup(config, "source_volume", null)
+          readOnly      = lookup(config, "read_only", false)
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = local.log_group_name
+          "awslogs-region"        = data.aws_region.this.name
+          "awslogs-stream-prefix" = lookup(configuration, "name", null),
+        }
+      }
+      environment = [for key, value in try(var.environment_variables[key], {}) :
+        {
+          name  = key
+          value = value
+        }
+      ]
+      secrets = [for secret_name, secret_value in try(var.secret_variables[key], {}) :
+        {
+          name      = secret_name
+          valueFrom = format("%s:%s::", aws_secretsmanager_secret_version.this[key].arn, secret_name)
+        }
+      ]
+      entryPoint   = lookup(configuration, "entry_point", [])
+      command      = lookup(configuration, "command", [])
+      mount_points = concat(local.mount_points_application_scratch, lookup(configuration, "mount_points", []))
+    }
+  ]
 }

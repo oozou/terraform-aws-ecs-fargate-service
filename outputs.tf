@@ -15,7 +15,7 @@ output "task_execution_role_arn" {
 
 output "secret_arns" {
   description = "List of ARNs of the SecretsManager secrets"
-  value       = try(aws_secretsmanager_secret.service_secrets.arn, "")
+  value       = try(aws_secretsmanager_secret.this[*].arn, "")
 }
 
 output "target_group_arn" {
