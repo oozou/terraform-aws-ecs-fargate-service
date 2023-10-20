@@ -249,5 +249,257 @@ module "payment_service" {
     }
   }
 
+  # target_tracking_configuration = {
+  #   policy_type = "TargetTrackingScaling"
+  #   name        = "cpu-average"
+  #   capacity = {
+  #     min_capacity = 1
+  #     max_capacity = 10
+  #   }
+  #   scaling_behaviors = {
+  #     predefined_metric_type = "ECSServiceAverageCPUUtilization"
+  #     target_value           = 60
+  #     scale_in_cooldown      = 180
+  #     scale_out_cooldown     = 60
+  #   }
+  # }
+
+  # target_tracking_configuration = {
+  #   policy_type = "TargetTrackingScaling"
+  #   name        = "concurrency-per-task"
+  #   capacity = {
+  #     min_capacity = 1
+  #     max_capacity = 10
+  #   }
+  #   scaling_behaviors = {
+  #     target_value       = 1500
+  #     scale_in_cooldown  = 180
+  #     scale_out_cooldown = 60
+  #     custom_metrics = {
+  #       active_connection_count = {
+  #         id          = "acc"
+  #         label       = "Get value of ActiveConnectionCount metric"
+  #         return_data = false
+  #         metric_stat = {
+  #           stat        = "Sum"
+  #           metric_name = "ActiveConnectionCount"
+  #           namespace   = "AWS/ApplicationELB"
+  #           dimensions = [
+  #             {
+  #               name  = "LoadBalancer"
+  #               value = "app/oozou-devops-demo-alb/f0f65a9c9ea681e0"
+  #             }
+  #           ]
+  #         }
+  #       }
+  #       running_task_count = {
+  #         id          = "rtc"
+  #         label       = "Get value of RunningTaskCount metric"
+  #         return_data = false
+  #         metric_stat = {
+  #           stat        = "Average"
+  #           metric_name = "RunningTaskCount"
+  #           namespace   = "ECS/ContainerInsights"
+  #           dimensions = [
+  #             {
+  #               name  = "ServiceName"
+  #               value = "oozou-devops-demo-service-api"
+  #             },
+  #             {
+  #               name  = "ClusterName"
+  #               value = "oozou-devops-demo-cluster"
+  #             },
+  #           ]
+  #         }
+  #       }
+  #       scaling_expression = {
+  #         id          = "e1"
+  #         label       = "ActiveConnectionCount/RunningTaskCount"
+  #         expression  = "(acc)/rtc"
+  #         return_data = true
+  #       }
+  #     }
+  #   }
+  # }
+
+  # step_scaling_configuration = {
+  #   policy_type = "StepScaling"
+  #   capacity = {
+  #     min_capacity = 1
+  #     max_capacity = 10
+  #   }
+  #   scaling_behaviors = {
+  #     cpu_up = {
+  #       metric_name         = "CPUUtilization"
+  #       namespace           = "AWS/ECS"
+  #       statistic           = "Average"
+  #       comparison_operator = ">="
+  #       threshold           = "60"
+  #       period              = "60"
+  #       evaluation_periods  = "1"
+  #       cooldown            = 60
+  #       # If value in (threshold+lower_bound, threshold+upper_bound), in crease scaling_adjustment
+  #       step_adjustment = [
+  #         {
+  #           # (60, 80) increase 1
+  #           metric_interval_lower_bound = 0
+  #           metric_interval_upper_bound = 20
+  #           scaling_adjustment          = 1
+  #         },
+  #         {
+  #           # (80, n) increase 2
+  #           metric_interval_lower_bound = 20
+  #           scaling_adjustment          = 2
+  #         }
+  #       ]
+  #     }
+  #     cpu_down = {
+  #       metric_name         = "CPUUtilization"
+  #       namespace           = "AWS/ECS"
+  #       statistic           = "Average"
+  #       comparison_operator = "<="
+  #       threshold           = "40"
+  #       period              = "60"
+  #       evaluation_periods  = "2"
+  #       cooldown            = 120
+  #       step_adjustment = [
+  #         # If value in (threshold+lower_bound, threshold+upper_bound), in crease scaling_adjustment
+  #         {
+  #           metric_interval_upper_bound = 0.0
+  #           scaling_adjustment          = -1
+  #         }
+  #       ]
+  #     }
+  #   }
+  # }
+
+  step_scaling_configuration = {
+    policy_type = "StepScaling"
+    capacity = {
+      min_capacity = 1
+      max_capacity = 10
+    }
+    scaling_behaviors = {
+      scaling_up = {
+        metric_query = [
+          {
+            id = "acc"
+            metric = [
+              {
+                metric_name = "RunningTaskCount"
+                namespace   = "ECS/ContainerInsights"
+                period      = "60"
+                stat        = "Average"
+                dimensions = {
+                  ClusterName = "oozou-devops-demo-cluster"
+                  ServiceName = "oozou-devops-demo-service-api"
+                }
+              }
+            ]
+          },
+          {
+            id = "rtc"
+            metric = [
+              {
+                metric_name = "RunningTaskCount"
+                namespace   = "ECS/ContainerInsights"
+                period      = "60"
+                stat        = "Average"
+                dimensions = {
+                  ClusterName = "oozou-devops-demo-cluster"
+                  ServiceName = "oozou-devops-demo-service-api"
+                }
+              }
+            ]
+          },
+          {
+            id          = "e1"
+            expression  = "acc*100/rtc"
+            label       = "ActiveConnectionCount/RunningTaskCount"
+            return_data = true
+          }
+        ]
+        statistic           = "Average"
+        comparison_operator = ">="
+        evaluation_periods  = "1"
+        threshold           = 1500
+        cooldown            = 60
+        # If value in (threshold+lower_bound, threshold+upper_bound), in crease scaling_adjustment
+        step_adjustment = [
+          {
+            # (1500, 2500) increase 1
+            metric_interval_lower_bound = 0
+            metric_interval_upper_bound = 1000
+            scaling_adjustment          = 1
+          },
+          {
+            # (2500, 4500) increase 2
+            metric_interval_lower_bound = 1000
+            metric_interval_upper_bound = 3000
+            scaling_adjustment          = 2
+          },
+          {
+            # (4500, n) increase 4
+            metric_interval_lower_bound = 3000
+            scaling_adjustment          = 4
+          }
+        ]
+      }
+      cpu_down = {
+        metric_query = [
+          {
+            id = "acc"
+            metric = [
+              {
+                metric_name = "RunningTaskCount"
+                namespace   = "ECS/ContainerInsights"
+                period      = "60"
+                stat        = "Average"
+                dimensions = {
+                  ClusterName = "oozou-devops-demo-cluster"
+                  ServiceName = "oozou-devops-demo-service-api"
+                }
+              }
+            ]
+          },
+          {
+            id = "rtc"
+            metric = [
+              {
+                metric_name = "RunningTaskCount"
+                namespace   = "ECS/ContainerInsights"
+                period      = "60"
+                stat        = "Average"
+                dimensions = {
+                  ClusterName = "oozou-devops-demo-cluster"
+                  ServiceName = "oozou-devops-demo-service-api"
+                }
+              }
+            ]
+          },
+          {
+            id          = "e1"
+            expression  = "acc/rtc"
+            label       = "ActiveConnectionCount/RunningTaskCount"
+            return_data = true
+          }
+        ]
+        statistic           = "Average"
+        comparison_operator = "<="
+        evaluation_periods  = "1"
+        threshold           = 1300
+        cooldown            = 60
+        # If value in (threshold+lower_bound, threshold+upper_bound), in crease scaling_adjustment
+        step_adjustment = [
+          {
+            # (0, 1300) increase 1
+            metric_interval_upper_bound = 0
+            scaling_adjustment          = -1
+          }
+        ]
+      }
+    }
+  }
+
   tags = var.custom_tags
 }
