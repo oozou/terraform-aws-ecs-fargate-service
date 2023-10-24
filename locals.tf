@@ -40,17 +40,11 @@ locals {
     | 1 | 1 | use custom kms */
   cloudwatch_log_group_kms_key_arn = var.is_create_cloudwatch_log_group ? var.cloudwatch_log_group_kms_key_arn != null ? var.cloudwatch_log_group_kms_key_arn : var.is_create_default_kms ? module.cloudwatch_log_group_kms[0].key_arn : null : null
 
-  comparison_operators = {
-    ">=" = "GreaterThanOrEqualToThreshold",
-    ">"  = "GreaterThanThreshold",
-    "<"  = "LessThanThreshold",
-    "<=" = "LessThanOrEqualToThreshold",
-  }
-
   tags = merge(
     {
       "Environment" = var.environment,
       "Terraform"   = "true"
+      "Module"      = "terraform-aws-ecs-fargate-service"
     },
     var.tags
   )
@@ -129,4 +123,21 @@ locals {
       mount_points = concat(local.mount_points_application_scratch, lookup(configuration, "mount_points", []))
     }
   ]
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                Auto Scaling                                */
+/* -------------------------------------------------------------------------- */
+locals {
+  is_created_aws_appautoscaling_target = var.target_tracking_configuration != {} || var.step_scaling_configuration != {}
+
+  is_target_tracking_scaling   = var.target_tracking_configuration == {} ? false : true
+  is_contain_predefined_metric = local.is_target_tracking_scaling ? try(var.target_tracking_configuration["scaling_behaviors"]["predefined_metric_type"], null) != null : false
+
+  comparison_operators = {
+    ">=" = "GreaterThanOrEqualToThreshold",
+    ">"  = "GreaterThanThreshold",
+    "<"  = "LessThanThreshold",
+    "<=" = "LessThanOrEqualToThreshold",
+  }
 }

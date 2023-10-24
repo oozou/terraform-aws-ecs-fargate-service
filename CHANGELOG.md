@@ -1,17 +1,37 @@
 # Change Log
 
+## [v1.3.0] - 2023-10-20
+
+### Added
+
+- Support customization metric autoscaling
+  - Local to make condition create resources: `local.is_created_aws_appautoscaling_target` `local.is_target_tracking_scaling` `local.is_contain_predefined_metric`
+  - Related resources: `aws_appautoscaling_policy.target_tracking_scaling_policies`, `aws_appautoscaling_policy.step_scaling_policies`, `module.step_alarm`
+  - Variables: `step_scaling_configuration`, `target_tracking_configuration`
+
+### Changed
+
+- Update resource tagging
+  - local tags append with module's name created this resource
+  - Resources: `aws_secretsmanager_secret.this`
+- Conditional to create resources: `aws_appautoscaling_target.this`, `aws_appautoscaling_policy.target_tracking_scaling_policies`, `aws_appautoscaling_policy.step_scaling_policies`
+
+### Removed
+
+- Variables: `scaling_configuration`
+
 ## [v1.2.0] - 2023-10-11
 
 ### Added
 
 - Support custom and built-in module KMS for cloudwatch log group
-  - resources: `data.aws_iam_policy_document.cloudwatch_log_group_kms_policy`, `module.cloudwatch_log_group_kms`
-  - variables: `is_create_default_kms`, `cloudwatch_log_group_kms_key_arn`
+  - Resources: `data.aws_iam_policy_document.cloudwatch_log_group_kms_policy`, `module.cloudwatch_log_group_kms`
+  - Variables: `is_create_default_kms`, `cloudwatch_log_group_kms_key_arn`
 - Validation condition `local.raise_multiple_container_attach_to_alb`
 - New method to create task definition with support multiple container `local.container_task_definitions`
-  - variables: `container`
+  - Variables: `container`
 - Support for 1 secretManager: N secret
-  - resources: `aws_secretsmanager_secret.this`, `aws_secretsmanager_secret_version.this`, `aws_iam_role_policy.task_execution_role_access_secret`
+  - Resources: `aws_secretsmanager_secret.this`, `aws_secretsmanager_secret_version.this`, `aws_iam_role_policy.task_execution_role_access_secret`
 
 ### Changed
 
@@ -22,7 +42,7 @@
 - Non-used module level validation `local.raise_vpc_id_empty`, `local.raise_service_port_empty`, `local.raise_health_check_empty` and `local.raise_alb_listener_arn_empty`
 - Remove all previous method to construct the task definition for ECS
 - Remove all secrets usage 1 key : 1 secret; use 1 secret in JSON form
-  - resources: `aws_secretsmanager_secret.service_secrets`, `aws_secretsmanager_secret_version.service_secrets`, `aws_iam_role_policy.task_execution_secrets`
+  - Resources: `aws_secretsmanager_secret.service_secrets`, `aws_secretsmanager_secret_version.service_secrets`, `aws_iam_role_policy.task_execution_secrets`
 - Remove unused variables `is_attach_service_with_lb`, `service_info`, `apm_sidecar_ecr_url`, `apm_config`. `unix_max_connection`, `entry_point` and `command`
 
 ## [v1.1.12] - 2023-01-23

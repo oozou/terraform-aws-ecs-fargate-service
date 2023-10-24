@@ -235,16 +235,17 @@ variable "propagate_tags" {
 /* -------------------------------------------------------------------------- */
 /*                             Auto Scaling Group                             */
 /* -------------------------------------------------------------------------- */
-variable "scaling_configuration" {
-  description = <<EOF
-  configuration of scaling configuration support both target tracking and step scaling policies
-  https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PredefinedMetricSpecification.html
-  https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cloudwatch-metrics.html
-  EOF
+variable "step_scaling_configuration" {
+  description = "(optional) Define step scaling behaviour, example in README"
   type        = any
   default     = {}
 }
 
+variable "target_tracking_configuration" {
+  description = "(optional) Define traget tracking behaviour, example in README"
+  type        = any
+  default     = {}
+}
 /* -------------------------------------------------------------------------- */
 /*                      capacity provider strategy                            */
 /* -------------------------------------------------------------------------- */
