@@ -392,23 +392,7 @@ resource "aws_ecs_service" "this" {
 /*                             Auto Scaling Target                            */
 /* -------------------------------------------------------------------------- */
 resource "aws_appautoscaling_target" "this" {
-  count = local.is_created_aws_appautoscaling_target && !var.ignore_update_scaling_policy ? 1 : 0
-
-  max_capacity = try(
-    var.target_tracking_configuration.capacity.max_capacity,
-    var.step_scaling_configuration.capacity.max_capacity
-  )
-  min_capacity = try(
-    var.target_tracking_configuration.capacity.min_capacity,
-    var.step_scaling_configuration.capacity.min_capacity
-  )
-  resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.name)
-  scalable_dimension = "ecs:service:DesiredCount"
-  service_namespace  = "ecs"
-}
-
-resource "aws_appautoscaling_target" "this" {
-  count = local.is_created_aws_appautoscaling_target && var.ignore_update_scaling_policy ? 1 : 0
+  count = local.is_created_aws_appautoscaling_target ? 1 : 0
 
   max_capacity = try(
     var.target_tracking_configuration.capacity.max_capacity,
@@ -423,14 +407,14 @@ resource "aws_appautoscaling_target" "this" {
   service_namespace  = "ecs"
 
   lifecycle {
-    ignore_changes = [
+    ignore_changes = var.ignore_update_scaling_policy ? [
       max_capacity,
       min_capacity,
       resource_id,
       scalable_dimension,
       service_namespace
       # Add other attributes as needed
-    ]
+    ] : []
   }
 }
 
