@@ -407,14 +407,7 @@ resource "aws_appautoscaling_target" "this" {
   service_namespace  = "ecs"
 
   lifecycle {
-    ignore_changes = var.ignore_update_scaling_policy ? [
-      max_capacity,
-      min_capacity,
-      resource_id,
-      scalable_dimension,
-      service_namespace
-      # Add other attributes as needed
-    ] : []
+    ignore_changes = var.ignore_update_scaling_policy ? dynamic(["max_capacity", "min_capacity", "resource_id", "scalable_dimension", "service_namespace"]) : []
   }
 }
 
