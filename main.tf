@@ -405,13 +405,17 @@ resource "aws_appautoscaling_target" "this" {
   resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.name)
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
+
+  # lifecycle {
+  #   ignore_changes = var.ignore_update_scaling_policy ? dynamic(["max_capacity", "min_capacity", "resource_id", "scalable_dimension", "service_namespace"]) : []
+  # }
 }
 
 /* -------------------------------------------------------------------------- */
 /*                             Auto Scaling Policy                            */
 /* -------------------------------------------------------------------------- */
 resource "aws_appautoscaling_policy" "target_tracking_scaling_policies" {
-  count = local.is_target_tracking_scaling ? 1 : 0
+  count = local.is_target_tracking_scaling && !var.ignore_update_scaling_policy ? 1 : 0
 
   depends_on = [aws_appautoscaling_target.this[0]]
 
@@ -485,7 +489,7 @@ resource "aws_appautoscaling_policy" "target_tracking_scaling_policies" {
 }
 
 resource "aws_appautoscaling_policy" "step_scaling_policies" {
-  for_each = try(var.step_scaling_configuration.policy_type, null) == "StepScaling" ? var.step_scaling_configuration["scaling_behaviors"] : {}
+  for_each = try(var.step_scaling_configuration.policy_type, null) == "StepScaling" && !var.ignore_update_scaling_policy ? var.step_scaling_configuration["scaling_behaviors"] : {}
 
   depends_on = [aws_appautoscaling_target.this[0]]
 

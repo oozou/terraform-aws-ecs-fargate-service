@@ -232,6 +232,11 @@ variable "propagate_tags" {
   default     = "TASK_DEFINITION"
 }
 
+variable "ignore_update_scaling_policy" {
+  description = "Ignore update scaling policy"
+  type        = bool
+  default     = false
+}
 /* -------------------------------------------------------------------------- */
 /*                             Auto Scaling Group                             */
 /* -------------------------------------------------------------------------- */
