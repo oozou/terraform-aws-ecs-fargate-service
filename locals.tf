@@ -134,6 +134,8 @@ locals {
   is_target_tracking_scaling   = var.target_tracking_configuration == {} ? false : true
   is_contain_predefined_metric = local.is_target_tracking_scaling ? try(var.target_tracking_configuration["scaling_behaviors"]["predefined_metric_type"], null) != null : false
 
+  update_scaling_policy = var.ignore_update_scaling_policy ? ["max_capacity", "min_capacity", "resource_id", "scalable_dimension", "service_namespace"] : []
+
   comparison_operators = {
     ">=" = "GreaterThanOrEqualToThreshold",
     ">"  = "GreaterThanThreshold",
@@ -141,3 +143,4 @@ locals {
     "<=" = "LessThanOrEqualToThreshold",
   }
 }
+
