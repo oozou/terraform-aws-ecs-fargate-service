@@ -411,7 +411,7 @@ resource "aws_appautoscaling_target" "this" {
   # }
 
   lifecycle {
-    ignore_changes = [ var.ignore_scaling_policy ]
+    ignore_changes = var.ignore_scaling_policy 
   }
 }
 
