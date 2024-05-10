@@ -411,7 +411,7 @@ resource "aws_appautoscaling_target" "this" {
   # }
 
   lifecycle {
-    ignore_changes = toset(local.update_scaling_policy)
+    ignore_changes = [ local.ignore_min_capacity, local.ignore_max_capacity ]
   }
 }
 
