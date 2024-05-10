@@ -134,9 +134,9 @@ locals {
   is_target_tracking_scaling   = var.target_tracking_configuration == {} ? false : true
   is_contain_predefined_metric = local.is_target_tracking_scaling ? try(var.target_tracking_configuration["scaling_behaviors"]["predefined_metric_type"], null) != null : false
 
-  ignore_scaling_policy = var.ignore_update_scaling_policy ? ["max_capacity", "min_capacity", "resource_id", "scalable_dimension", "service_namespace"] : []
-  #ignore_min_capacity = var.ignore_update_scaling_policy ? "min_capacity" : "" 
-  #ignore_max_capacity = var.ignore_update_scaling_policy ? "max_capacity" : ""
+  #ignore_scaling_policy = var.ignore_update_scaling_policy ? ["max_capacity", "min_capacity", "resource_id", "scalable_dimension", "service_namespace"] : []
+  ignore_min_capacity = var.ignore_update_scaling_policy ? "min_capacity" : "" 
+  ignore_max_capacity = var.ignore_update_scaling_policy ? "max_capacity" : ""
 
   comparison_operators = {
     ">=" = "GreaterThanOrEqualToThreshold",
