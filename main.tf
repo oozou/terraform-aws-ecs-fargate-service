@@ -142,6 +142,7 @@ resource "aws_lb_target_group" "this" {
     healthy_threshold   = lookup(each.value.health_check, "healthy_threshold", null)
     unhealthy_threshold = lookup(each.value.health_check, "unhealthy_threshold", null)
     matcher             = lookup(each.value.health_check, "matcher", null)
+    port                = lookup(each.value.health_check, "port", null)
   }
 
   dynamic "stickiness" {
