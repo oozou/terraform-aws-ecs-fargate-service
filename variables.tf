@@ -112,6 +112,19 @@ variable "vpc_id" {
   default     = ""
 }
 
+variable "health_check" {
+  description = "Health Check Config for the service"
+  type        = map(string)
+  default     = {}
+  # default = {
+  #   interval            = 20
+  #   path                = ""
+  #   timeout             = 10
+  #   healthy_threshold   = 3
+  #   unhealthy_threshold = 3
+  #   matcher             = "200,201,204"
+  # }
+}
 /* ------------------------------ Listener Rule ----------------------------- */
 variable "alb_listener_arn" {
   description = "The ALB listener to attach to"
@@ -119,16 +132,22 @@ variable "alb_listener_arn" {
   default     = ""
 }
 
-variable "alb_target_group" {
-  description = "Target group for application"
-  type        = any
-  default     = {}
+variable "alb_host_header" {
+  description = "Mention host header for api endpoint"
+  type        = string
+  default     = null
 }
 
-variable "alb_listener_rules" {
-  description = "Listener rule to add to listener arn"
-  type        = list(any)
+variable "alb_paths" {
+  description = "Mention list Path For ALB routing eg: [\"/\"] or [\"/route1\"]"
+  type        = list(string)
   default     = []
+}
+
+variable "alb_priority" {
+  description = "Priority of ALB rule https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#listener-rules"
+  type        = string
+  default     = "100"
 }
 
 variable "custom_header_token" {
