@@ -124,104 +124,54 @@ resource "aws_cloudwatch_log_group" "this" {
 /*                                Load Balancer                               */
 /* -------------------------------------------------------------------------- */
 resource "aws_lb_target_group" "this" {
-  for_each = var.alb_target_group
+  count = local.is_create_target_group ? 1 : 0
 
-  name = format("%s-tg", substr(format("%s", replace(each.key, "_", "-")), 0, min(29, length(format("%s", replace(each.key, "_", "-"))))))
+  name = format("%s-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name))))
 
-  port                 = lookup(each.value, "port", null)
-  protocol             = lookup(each.value, "protocol", null)
+  port                 = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port
+  protocol             = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port == 443 ? "HTTPS" : "HTTP"
   vpc_id               = var.vpc_id
-  target_type          = lookup(each.value, "target_type", "ip")
+  target_type          = "ip"
   deregistration_delay = var.target_group_deregistration_delay
 
   health_check {
-    enabled             = lookup(each.value.health_check, "enabled", null)
-    interval            = lookup(each.value.health_check, "interval", null)
-    path                = lookup(each.value.health_check, "path", null)
-    timeout             = lookup(each.value.health_check, "timeout", null)
-    healthy_threshold   = lookup(each.value.health_check, "healthy_threshold", null)
-    unhealthy_threshold = lookup(each.value.health_check, "unhealthy_threshold", null)
-    matcher             = lookup(each.value.health_check, "matcher", null)
-    port                = lookup(each.value.health_check, "port", null)
+    interval            = lookup(var.health_check, "interval", null)
+    path                = lookup(var.health_check, "path", null)
+    timeout             = lookup(var.health_check, "timeout", null)
+    healthy_threshold   = lookup(var.health_check, "healthy_threshold", null)
+    unhealthy_threshold = lookup(var.health_check, "unhealthy_threshold", null)
+    matcher             = lookup(var.health_check, "matcher", null)
   }
 
-  dynamic "stickiness" {
-    for_each = lookup(each.value, "stickiness", null) == null ? [] : [true]
-    content {
-      enabled         = lookup(each.value.stickiness, "enabled", null)
-      type            = lookup(each.value.stickiness, "type", null)
-      cookie_name     = lookup(each.value.stickiness, "cookie_name", null)
-      cookie_duration = lookup(each.value.stickiness, "cookie_duration", null)
-    }
-  }
-
-  tags = merge(local.tags, { "Name" = format("%s-tg", substr(format("%s", replace(each.key, "_", "-")), 0, min(29, length(format("%s", replace(each.key, "_", "-")))))) })
+  tags = merge(local.tags, { "Name" = format("%s-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name)))) })
 }
-
 /* ------------------------------ Listener Rule ----------------------------- */
 resource "aws_lb_listener_rule" "this" {
-  count = length(var.alb_listener_rules)
+  count = local.is_create_target_group ? 1 : 0
 
   listener_arn = var.alb_listener_arn
-  priority     = lookup(var.alb_listener_rules[count.index], "alb_priority", null)
+  priority     = var.alb_priority
 
-  dynamic "action" {
-    for_each = [
-      # for action_rule in var.additional_alb_rule[count.index].actions :
-      for action_rule in lookup(var.alb_listener_rules[count.index], "actions") :
-      action_rule
-      if action_rule.type == "forward"
-    ]
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.this[0].arn
+  }
 
-    content {
-      type             = action.value["type"]
-      target_group_arn = aws_lb_target_group.this[lookup(var.alb_listener_rules[count.index], "target_group")].arn
+  condition {
+    path_pattern {
+      values = var.alb_paths == [] ? ["*"] : var.alb_paths
     }
   }
 
-  # redirect actions
-  dynamic "action" {
-    for_each = [
-      # for action_rule in var.additional_alb_rule[count.index].actions :
-      for action_rule in lookup(var.alb_listener_rules[count.index], "actions") :
-      action_rule
-      if action_rule.type == "redirect"
-    ]
-
-    content {
-      type = action.value["type"]
-      redirect {
-        host        = lookup(action.value, "host", null)
-        path        = lookup(action.value, "path", null)
-        port        = lookup(action.value, "port", null)
-        protocol    = lookup(action.value, "protocol", null)
-        query       = lookup(action.value, "query", null)
-        status_code = action.value["status_code"]
-      }
-    }
-  }
-
-  # Path Pattern condition
   dynamic "condition" {
-    for_each = length(lookup(var.alb_listener_rules[count.index], "alb_paths", [])) > 0 ? [true] : []
-    content {
-      path_pattern {
-        values = lookup(var.alb_listener_rules[count.index], "alb_paths")
-      }
-    }
-  }
-
-  # Host header condition
-  dynamic "condition" {
-    for_each = lookup(var.alb_listener_rules[count.index], "alb_host_header", null) == null ? [] : [true]
+    for_each = var.alb_host_header == null ? [] : [true]
     content {
       host_header {
-        values = [lookup(var.alb_listener_rules[count.index], "alb_host_header")]
+        values = [var.alb_host_header]
       }
     }
   }
 
-  # http header condition
   dynamic "condition" {
     for_each = var.custom_header_token == "" ? [] : [true]
     content {
@@ -232,27 +182,8 @@ resource "aws_lb_listener_rule" "this" {
     }
   }
 
-  # Query string condition
-  dynamic "condition" {
-    for_each = length(lookup(var.alb_listener_rules[count.index], "alb_query_strings", [])) > 0 ? [true] : []
-
-    content {
-      dynamic "query_string" {
-        for_each = [
-          for query_string in var.alb_listener_rules[count.index].alb_query_strings :
-          query_string
-        ]
-        content {
-          key   = lookup(query_string.value, "key", null)
-          value = query_string.value["value"]
-        }
-      }
-    }
-  }
-
   tags = local.tags
 }
-
 /* -------------------------------------------------------------------------- */
 /*                                   Secret                                   */
 /* -------------------------------------------------------------------------- */
@@ -438,12 +369,12 @@ resource "aws_ecs_service" "this" {
   }
 
   dynamic "load_balancer" {
-    for_each = var.alb_target_group
+    for_each = local.is_create_target_group ? [true] : []
 
     content {
-      target_group_arn = aws_lb_target_group.this[load_balancer.key].arn
+      target_group_arn = aws_lb_target_group.this[0].arn
       container_name   = local.name
-      container_port   = load_balancer.value.port
+      container_port   = local.container_target_group_object.port_mappings[0].container_port
     }
   }
 

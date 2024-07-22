@@ -28,6 +28,8 @@ locals {
   ecs_cluster_arn = "arn:aws:ecs:${data.aws_region.this.name}:${data.aws_caller_identity.this.account_id}:cluster/${var.ecs_cluster_name}"
 
   container_attahced_to_alb_keys = [for key, container in var.container : key if try(container.is_attach_to_lb, false) == true]
+  is_create_target_group         = length(local.container_attahced_to_alb_keys) == 1
+  container_target_group_object  = try(var.container[local.container_attahced_to_alb_keys[0]], {})
 
   # KMS
   /*| a | b | (a: enable default kms, b: use custom kms)
