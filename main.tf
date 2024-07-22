@@ -124,54 +124,103 @@ resource "aws_cloudwatch_log_group" "this" {
 /*                                Load Balancer                               */
 /* -------------------------------------------------------------------------- */
 resource "aws_lb_target_group" "this" {
-  count = local.is_create_target_group ? 1 : 0
+  for_each = var.alb_target_group
 
-  name = format("%s-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name))))
+  name = format("%s-tg", substr(format("%s", replace(each.key, "_", "-")), 0, min(29, length(format("%s", replace(each.key, "_", "-"))))))
 
-  port                 = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port
-  protocol             = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port == 443 ? "HTTPS" : "HTTP"
+  port                 = lookup(each.value, "port", null)
+  protocol             = lookup(each.value, "protocol", null)
   vpc_id               = var.vpc_id
-  target_type          = "ip"
+  target_type          = lookup(each.value, "target_type", "ip")
   deregistration_delay = var.target_group_deregistration_delay
 
   health_check {
-    interval            = lookup(var.health_check, "interval", null)
-    path                = lookup(var.health_check, "path", null)
-    timeout             = lookup(var.health_check, "timeout", null)
-    healthy_threshold   = lookup(var.health_check, "healthy_threshold", null)
-    unhealthy_threshold = lookup(var.health_check, "unhealthy_threshold", null)
-    matcher             = lookup(var.health_check, "matcher", null)
+    enabled             = lookup(each.value.health_check, "enabled", null)
+    interval            = lookup(each.value.health_check, "interval", null)
+    path                = lookup(each.value.health_check, "path", null)
+    timeout             = lookup(each.value.health_check, "timeout", null)
+    healthy_threshold   = lookup(each.value.health_check, "healthy_threshold", null)
+    unhealthy_threshold = lookup(each.value.health_check, "unhealthy_threshold", null)
+    matcher             = lookup(each.value.health_check, "matcher", null)
   }
 
-  tags = merge(local.tags, { "Name" = format("%s-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name)))) })
-}
-/* ------------------------------ Listener Rule ----------------------------- */
-resource "aws_lb_listener_rule" "this" {
-  count = local.is_create_target_group ? 1 : 0
-
-  listener_arn = var.alb_listener_arn
-  priority     = var.alb_priority
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.this[0].arn
-  }
-
-  condition {
-    path_pattern {
-      values = var.alb_paths == [] ? ["*"] : var.alb_paths
+  dynamic "stickiness" {
+    for_each = lookup(each.value, "stickiness", null) == null ? [] : [true]
+    content {
+      enabled         = lookup(each.value.stickiness, "enabled", null)
+      type            = lookup(each.value.stickiness, "type", null)
+      cookie_name     = lookup(each.value.stickiness, "cookie_name", null)
+      cookie_duration = lookup(each.value.stickiness, "cookie_duration", null)
     }
   }
 
-  dynamic "condition" {
-    for_each = var.alb_host_header == null ? [] : [true]
+  tags = merge(local.tags, { "Name" = format("%s-tg", substr(format("%s", replace(each.key, "_", "-")), 0, min(29, length(format("%s", replace(each.key, "_", "-")))))) })
+}
+
+/* ------------------------------ Listener Rule ----------------------------- */
+resource "aws_lb_listener_rule" "this" {
+  count = length(var.alb_listener_rules)
+
+  listener_arn = var.alb_listener_arn
+  priority     = lookup(var.alb_listener_rules[count.index], "alb_priority", null)
+
+  dynamic "action" {
+    for_each = [
+      # for action_rule in var.additional_alb_rule[count.index].actions :
+      for action_rule in lookup(var.alb_listener_rules[count.index], "actions") :
+      action_rule
+      if action_rule.type == "forward"
+    ]
+
     content {
-      host_header {
-        values = [var.alb_host_header]
+      type             = action.value["type"]
+      target_group_arn = aws_lb_target_group.this[lookup(var.alb_listener_rules[count.index], "target_group")].arn
+    }
+  }
+
+  # redirect actions
+  dynamic "action" {
+    for_each = [
+      # for action_rule in var.additional_alb_rule[count.index].actions :
+      for action_rule in lookup(var.alb_listener_rules[count.index], "actions") :
+      action_rule
+      if action_rule.type == "redirect"
+    ]
+
+    content {
+      type = action.value["type"]
+      redirect {
+        host        = lookup(action.value, "host", null)
+        path        = lookup(action.value, "path", null)
+        port        = lookup(action.value, "port", null)
+        protocol    = lookup(action.value, "protocol", null)
+        query       = lookup(action.value, "query", null)
+        status_code = action.value["status_code"]
       }
     }
   }
 
+  # Path Pattern condition
+  dynamic "condition" {
+    for_each = length(lookup(var.alb_listener_rules[count.index], "alb_paths", [])) > 0 ? [true] : []
+    content {
+      path_pattern {
+        values = lookup(var.alb_listener_rules[count.index], "alb_paths")
+      }
+    }
+  }
+
+  # Host header condition
+  dynamic "condition" {
+    for_each = lookup(var.alb_listener_rules[count.index], "alb_host_header", null) == null ? [] : [true]
+    content {
+      host_header {
+        values = [lookup(var.alb_listener_rules[count.index], "alb_host_header")]
+      }
+    }
+  }
+
+  # http header condition
   dynamic "condition" {
     for_each = var.custom_header_token == "" ? [] : [true]
     content {
@@ -182,8 +231,27 @@ resource "aws_lb_listener_rule" "this" {
     }
   }
 
+  # Query string condition
+  dynamic "condition" {
+    for_each = length(lookup(var.alb_listener_rules[count.index], "alb_query_strings", [])) > 0 ? [true] : []
+
+    content {
+      dynamic "query_string" {
+        for_each = [
+          for query_string in var.alb_listener_rules[count.index].alb_query_strings :
+          query_string
+        ]
+        content {
+          key   = lookup(query_string.value, "key", null)
+          value = query_string.value["value"]
+        }
+      }
+    }
+  }
+
   tags = local.tags
 }
+
 /* -------------------------------------------------------------------------- */
 /*                                   Secret                                   */
 /* -------------------------------------------------------------------------- */
@@ -369,12 +437,12 @@ resource "aws_ecs_service" "this" {
   }
 
   dynamic "load_balancer" {
-    for_each = local.is_create_target_group ? [true] : []
+    for_each = var.alb_target_group
 
     content {
-      target_group_arn = aws_lb_target_group.this[0].arn
+      target_group_arn = aws_lb_target_group.this[load_balancer.key].arn
       container_name   = local.name
-      container_port   = local.container_target_group_object.port_mappings[0].container_port
+      container_port   = load_balancer.value.port
     }
   }
 
@@ -405,17 +473,13 @@ resource "aws_appautoscaling_target" "this" {
   resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.name)
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
-
-  # lifecycle {
-  #   ignore_changes = var.ignore_update_scaling_policy ? dynamic(["max_capacity", "min_capacity", "resource_id", "scalable_dimension", "service_namespace"]) : []
-  # }
 }
 
 /* -------------------------------------------------------------------------- */
 /*                             Auto Scaling Policy                            */
 /* -------------------------------------------------------------------------- */
 resource "aws_appautoscaling_policy" "target_tracking_scaling_policies" {
-  count = local.is_target_tracking_scaling && !var.ignore_update_scaling_policy ? 1 : 0
+  count = local.is_target_tracking_scaling ? 1 : 0
 
   depends_on = [aws_appautoscaling_target.this[0]]
 
@@ -489,7 +553,7 @@ resource "aws_appautoscaling_policy" "target_tracking_scaling_policies" {
 }
 
 resource "aws_appautoscaling_policy" "step_scaling_policies" {
-  for_each = try(var.step_scaling_configuration.policy_type, null) == "StepScaling" && !var.ignore_update_scaling_policy ? var.step_scaling_configuration["scaling_behaviors"] : {}
+  for_each = try(var.step_scaling_configuration.policy_type, null) == "StepScaling" ? var.step_scaling_configuration["scaling_behaviors"] : {}
 
   depends_on = [aws_appautoscaling_target.this[0]]
 

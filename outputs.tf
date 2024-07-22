@@ -20,12 +20,12 @@ output "secret_arns" {
 
 output "target_group_arn" {
   description = "id - ARN of the Target Group (matches arn)."
-  value       = try(aws_lb_target_group.this[*].arn, "")
+  value       = try(aws_lb_target_group.this[0].arn, "")
 }
 
 output "target_group_id" {
   description = "id - ARN of the Target Group (matches arn)."
-  value       = try(aws_lb_target_group.this[*].id, "")
+  value       = try(aws_lb_target_group.this[0].id, "")
 }
 
 output "cloudwatch_log_group_name" {
