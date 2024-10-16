@@ -133,6 +133,7 @@ resource "aws_lb_target_group" "this" {
   vpc_id               = var.vpc_id
   target_type          = lookup(each.value, "target_type", "ip")
   deregistration_delay = var.target_group_deregistration_delay
+  slow_start           = var.slow_start
 
   health_check {
     enabled             = lookup(each.value.health_check, "enabled", null)
