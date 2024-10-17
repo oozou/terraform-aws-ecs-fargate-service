@@ -137,6 +137,12 @@ variable "custom_header_token" {
   default     = ""
 }
 
+variable "slow_start" {
+  description = "(Optional) Amount time for TargetGroup wait before check the farget-service. The range 30-900 seconds or 0 to disable. Not compatible with the Least outstanding requests and Weighted random routing algorithms. The default value is 0 seconds."
+  type        = number
+  default     = 0  
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                Secret & Env                                */
 /* -------------------------------------------------------------------------- */
