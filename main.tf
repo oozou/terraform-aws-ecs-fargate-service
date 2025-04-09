@@ -144,6 +144,11 @@ resource "aws_lb_target_group" "this" {
   }
 
   tags = merge(local.tags, { "Name" = format("%s-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name)))) })
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
 }
 /* ------------------------------ Listener Rule ----------------------------- */
 resource "aws_lb_listener_rule" "this" {
@@ -384,6 +389,10 @@ resource "aws_ecs_service" "this" {
       desired_count
     ]
   }
+
+  depends_on = [
+    aws_lb_target_group.this[0]
+  ]
 
   tags = merge(local.tags, { Name = format("%s", local.name) })
 }

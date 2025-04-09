@@ -1,5 +1,11 @@
 # Change Log
 
+## [v1.3.1] - 2025-04-09
+### Added
+
+- lifecycle create_before_destroy for aws_lb_target_group
+- aws_ecs_service dependon aws_lb_target_group
+
 ## [v1.3.0] - 2023-10-20
 
 ### Added
