@@ -275,7 +275,7 @@ resource "aws_ecs_task_definition" "this" {
   container_definitions = jsonencode(local.container_task_definitions)
 
   dynamic "volume" {
-    for_each = local.volumes
+    for_each = var.efs_volumes #local.volumes
     content {
       host_path = lookup(volume.value, "host_path", null)
       name      = volume.value.name

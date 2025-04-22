@@ -272,8 +272,7 @@ variable "ordered_placement_strategy" {
 /* -------------------------------------------------------------------------- */
 variable "efs_volumes" {
   description = "Task EFS volume definitions as list of configuration objects. You cannot define both Docker volumes and EFS volumes on the same task definition."
-  type        = list(any)
-  default     = []
+  type        = any
 }
 
 /* -------------------------------------------------------------------------- */
