@@ -40,6 +40,8 @@ locals {
     | 1 | 1 | use custom kms */
   cloudwatch_log_group_kms_key_arn = var.is_create_cloudwatch_log_group ? var.cloudwatch_log_group_kms_key_arn != null ? var.cloudwatch_log_group_kms_key_arn : var.is_create_default_kms ? module.cloudwatch_log_group_kms[0].key_arn : null : null
 
+  secret_kms_key_arn = var.is_create_default_kms && var.secret_kms_key_arn == null ? module.secret_kms_key[0].key_arn : var.secret_kms_key_arn
+
   tags = merge(
     {
       "Environment" = var.environment,
