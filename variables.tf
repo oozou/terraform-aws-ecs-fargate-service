@@ -97,6 +97,12 @@ variable "cloudwatch_log_group_kms_key_arn" {
   default     = null
 }
 
+variable "secret_kms_key_arn" {
+  description = "The ARN for the secret manager KMS encryption key."
+  type        = string
+  default     = null
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                LoadBalancer                                */
 /* -------------------------------------------------------------------------- */

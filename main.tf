@@ -104,7 +104,7 @@ module "cloudwatch_log_group_kms" {
   name                 = format("%s-log-group", var.name)
   key_type             = "service"
   append_random_suffix = true
-  description          = format("Secure Secrets Manager's service secrets for service %s", local.name)
+  description          = format("Secure log group for service %s", local.name)
   additional_policies  = [data.aws_iam_policy_document.cloudwatch_log_group_kms_policy.json]
 
   tags = merge(local.tags, { "Name" : format("%s-log-group", local.name) })
@@ -193,6 +193,7 @@ resource "aws_lb_listener_rule" "this" {
 /*                                   Secret                                   */
 /* -------------------------------------------------------------------------- */
 module "secret_kms_key" {
+  count   = var.is_create_default_kms && var.secret_kms_key_arn == null ? 1 : 0
   source  = "oozou/kms-key/aws"
   version = "1.0.0"
 
@@ -226,7 +227,7 @@ resource "aws_secretsmanager_secret" "this" {
 
   name        = "${each.value.name}/${random_string.service_secret_random_suffix[each.key].result}"
   description = "Secret for service ${local.name}"
-  kms_key_id  = module.secret_kms_key.key_arn
+  kms_key_id  = local.secret_kms_key_arn
 
   tags = merge({ Name = "${each.value.name}/${random_string.service_secret_random_suffix[each.key].result}" }, local.tags)
 }
