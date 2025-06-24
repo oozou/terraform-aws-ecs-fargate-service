@@ -412,7 +412,7 @@ resource "aws_appautoscaling_target" "this" {
     var.target_tracking_configuration.capacity.min_capacity,
     var.step_scaling_configuration.capacity.min_capacity
   )
-  resource_id        = format("service/%s/%s", var.ecs_cluster_name, local.name)
+  resource_id        = format("service/%s/%s", var.ecs_cluster_name, aws_ecs_service.this.name)
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
 }
