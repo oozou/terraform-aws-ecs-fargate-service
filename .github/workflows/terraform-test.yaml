@@ -1,0 +1,29 @@
+name: Test Module
+
+on:
+  pull_request:
+    paths:
+      - '*.tf'
+      - 'tests/**'
+      - 'examples/terraform-test/**'
+      - '.github/workflows/terraform-test.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+  
+jobs:
+  test:
+    name: Run Terraform Tests
+    uses: oozou/.github/.github/workflows/terraform-test.yml@main
+    secrets: inherit
+    with:
+      aws_region: 'ap-southeast-1'
+      tf_version: '1.9.8'
+      go_version: '1.21'
+      test_example_path: 'examples/terraform-test'
+      timeout_minutes: 60
+      module_name: 'AWS ECS Service'
+      iam_oidc_role: 'arn:aws:iam::562563527952:role/oozou-internal-devops-github-action-oidc-role' # oozou internal account
