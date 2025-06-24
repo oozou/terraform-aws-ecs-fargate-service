@@ -39,11 +39,11 @@ module "acm" {
   source  = "oozou/acm/aws"
   version = "1.0.4"
 
-  acms_domain_name         = {
-  cms = {
-    domain_name = "terraform-test.devops.team.oozou.com"
+  acms_domain_name = {
+    cms = {
+      domain_name = "terraform-test.devops.team.oozou.com"
+    }
   }
-}
   route53_zone_name        = "devops.team.oozou.com"
   is_automatic_verify_acms = true
 }
@@ -128,7 +128,7 @@ module "api_service" {
 
   container = {
     main_container = {
-      name            = format("%s-%s-%s-api-service",var.prefix, var.environment, var.name)
+      name            = format("%s-%s-%s-api-service", var.prefix, var.environment, var.name)
       image           = "nginx"
       cpu             = 128
       memory          = 256
