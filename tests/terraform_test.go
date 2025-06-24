@@ -335,7 +335,9 @@ func testAppAccessibleFromALB(t *testing.T, terraformOptions *terraform.Options,
 	for i := 0; i < maxRetries; i++ {
 		resp, err := client.Get(url)
 		if err == nil {
-			defer resp.Body.Close()
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 			
 			// Check if we get a successful response (2xx or 3xx)
 			if resp.StatusCode >= 200 && resp.StatusCode < 400 {
