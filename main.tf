@@ -150,6 +150,34 @@ resource "aws_lb_target_group" "this" {
   }
 
 }
+
+resource "aws_lb_target_group" "green" {
+  count = local.is_create_target_group && var.is_enable_blue_green_deployment ? 1 : 0
+
+  name = format("%s-green-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name))))
+
+  port                 = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port
+  protocol             = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port == 443 ? "HTTPS" : "HTTP"
+  vpc_id               = var.vpc_id
+  target_type          = "ip"
+  deregistration_delay = var.target_group_deregistration_delay
+
+  health_check {
+    interval            = lookup(var.health_check, "interval", null)
+    path                = lookup(var.health_check, "path", null)
+    timeout             = lookup(var.health_check, "timeout", null)
+    healthy_threshold   = lookup(var.health_check, "healthy_threshold", null)
+    unhealthy_threshold = lookup(var.health_check, "unhealthy_threshold", null)
+    matcher             = lookup(var.health_check, "matcher", null)
+  }
+
+  tags = merge(local.tags, { "Name" = format("%s-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name)))) })
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+}
 /* ------------------------------ Listener Rule ----------------------------- */
 resource "aws_lb_listener_rule" "this" {
   count = local.is_create_target_group ? 1 : 0

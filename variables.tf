@@ -305,3 +305,13 @@ variable "container" {
   type        = any
   default     = {}
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                Blue-Green Deployment                       */
+/* -------------------------------------------------------------------------- */
+variable "is_enable_blue_green_deployment" {
+  description = "Whether the service enable blue-green deployment"
+  type        = bool
+  default     = false
+}
+
