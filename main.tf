@@ -154,7 +154,7 @@ resource "aws_lb_target_group" "this" {
 resource "aws_lb_target_group" "green" {
   count = local.is_create_target_group && var.is_enable_blue_green_deployment ? 1 : 0
 
-  name = format("%s-green-tg", substr(local.container_target_group_object.name, 0, min(29, length(local.container_target_group_object.name))))
+  name = format("%s-gn-tg", substr(local.container_target_group_object.name, 0, min(32, length(local.container_target_group_object.name))))
 
   port                 = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port
   protocol             = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port == 443 ? "HTTPS" : "HTTP"
