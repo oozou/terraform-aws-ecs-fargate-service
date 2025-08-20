@@ -128,7 +128,7 @@ module "api_service" {
 
   container = {
     main_container = {
-      name            = format("%s-%s-%s", var.prefix, var.environment, var.name)
+      name            = format("%s-%s-%s-api-service", var.prefix, var.environment, var.name)
       image           = "nginx"
       cpu             = 128
       memory          = 256
