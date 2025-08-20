@@ -8,6 +8,7 @@
     - var: 
         - is_enable_blue_green_deployment
         - green_header_value
+        - alb_priority_green
     - resource:  
         - aws_lb_target_group.green
         - aws_lb_listener_rule.green

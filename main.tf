@@ -223,7 +223,7 @@ resource "aws_lb_listener_rule" "green" {
   count = local.is_create_target_group && var.is_enable_blue_green_deployment ? 1 : 0
 
   listener_arn = var.alb_listener_arn
-  priority     = var.alb_priority
+  priority     = var.alb_priority_green
 
   action {
     type             = "forward"
