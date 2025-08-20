@@ -1,6 +1,21 @@
 # Change Log
 
+## [v1.4.0] - 2025-08-20
+
+### Added
+
+- Support blue-green deployment
+    - var: 
+        - is_enable_blue_green_deployment
+        - green_header_value
+        - alb_priority_green
+    - resource:  
+        - aws_lb_target_group.green
+        - aws_lb_listener_rule.green
+
+
 ## [v1.3.1] - 2025-04-09
+
 ### Added
 
 - lifecycle create_before_destroy for aws_lb_target_group

@@ -177,5 +177,8 @@ module "api_service" {
     }
   }
 
+  # Blue-Green Deployment
+  is_enable_blue_green_deployment = true
+
   tags = var.custom_tags
 }

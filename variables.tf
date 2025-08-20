@@ -305,3 +305,25 @@ variable "container" {
   type        = any
   default     = {}
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                Blue-Green Deployment                       */
+/* -------------------------------------------------------------------------- */
+variable "is_enable_blue_green_deployment" {
+  description = "Whether the service enable blue-green deployment"
+  type        = bool
+  default     = false
+}
+
+variable "green_header_value" {
+  description = "green header value in alb listener rule for blue-green deployment"
+  type        = string
+  default     = "green"
+}
+
+variable "alb_priority_green" {
+  description = "Priority of ALB rule https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#listener-rules"
+  type        = string
+  default     = "110"
+}
+
