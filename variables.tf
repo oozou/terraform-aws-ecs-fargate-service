@@ -315,3 +315,10 @@ variable "is_enable_blue_green_deployment" {
   default     = false
 }
 
+variable "green_header_value" {
+  description = "green header value in alb listener rule for blue-green deployment"
+  type        = string
+  default     = "green"
+}
+
+
