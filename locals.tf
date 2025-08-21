@@ -42,6 +42,8 @@ locals {
 
   secret_kms_key_arn = var.is_create_default_kms && var.secret_kms_key_arn == null ? module.secret_kms_key[0].key_arn : var.secret_kms_key_arn
 
+  deployment_controller = var.is_enable_blue_green_deployment ? "CODE_DEPLOY" : "ECS"
+
   tags = merge(
     {
       "Environment" = var.environment,

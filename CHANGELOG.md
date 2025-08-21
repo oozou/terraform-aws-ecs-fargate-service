@@ -1,5 +1,11 @@
 # Change Log
 
+## [v1.4.1] - 2025-08-21
+### Added
+
+- local.deployment_controller
+- resource.aws_ecs_service.this.deployment_controller
+
 ## [v1.4.0] - 2025-08-20
 
 ### Added

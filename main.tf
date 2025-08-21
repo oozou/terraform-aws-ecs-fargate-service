@@ -463,6 +463,10 @@ resource "aws_ecs_service" "this" {
     }
   }
 
+  deployment_controller {
+    type = local.deployment_controller
+  }
+
   lifecycle {
     ignore_changes = [
       task_definition,
