@@ -449,7 +449,7 @@ resource "aws_ecs_service" "this" {
   }
 
   deployment_circuit_breaker {
-    enable   = var.deployment_circuit_breaker.enable
+    enable   = local.is_enable_deployment_circuit_breaker
     rollback = var.deployment_circuit_breaker.rollback
   }
 

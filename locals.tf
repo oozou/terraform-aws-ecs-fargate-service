@@ -44,6 +44,8 @@ locals {
 
   deployment_controller = var.is_enable_blue_green_deployment ? "CODE_DEPLOY" : "ECS"
 
+  is_enable_deployment_circuit_breaker = var.is_enable_blue_green_deployment == false && var.deployment_circuit_breaker.enable == true ? true : false
+
   tags = merge(
     {
       "Environment" = var.environment,
