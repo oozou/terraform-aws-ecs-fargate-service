@@ -449,7 +449,7 @@ resource "aws_ecs_service" "this" {
   }
 
   deployment_circuit_breaker {
-    enable   = var.deployment_circuit_breaker.enable
+    enable   = local.is_enable_deployment_circuit_breaker
     rollback = var.deployment_circuit_breaker.rollback
   }
 
@@ -461,6 +461,10 @@ resource "aws_ecs_service" "this" {
       container_name   = local.name
       container_port   = local.container_target_group_object.port_mappings[0].container_port
     }
+  }
+
+  deployment_controller {
+    type = local.deployment_controller
   }
 
   lifecycle {
