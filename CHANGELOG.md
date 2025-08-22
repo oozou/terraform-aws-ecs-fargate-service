@@ -1,5 +1,14 @@
 # Change Log
 
+## [v1.4.2] - 2025-08-22
+### Added
+
+- output: 
+    - target_group_green_arn
+    - target_group_green_name
+    - target_group_green_id
+    - target_group_name
+
 ## [v1.4.1] - 2025-08-21
 ### Added
 

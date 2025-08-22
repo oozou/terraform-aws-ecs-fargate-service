@@ -28,6 +28,26 @@ output "target_group_id" {
   value       = try(aws_lb_target_group.this[0].id, "")
 }
 
+output "target_group_name" {
+  description = "id - ARN of the Target Group (matches arn)."
+  value       = try(aws_lb_target_group.this[0].name, "")
+}
+
+output "target_group_green_arn" {
+  description = "id - ARN of the green Target Group (matches arn)."
+  value       = try(aws_lb_target_group.green[0].arn, "")
+}
+
+output "target_group_green_id" {
+  description = "id - ARN of the green Target Group (matches arn)."
+  value       = try(aws_lb_target_group.green[0].id, "")
+}
+
+output "target_group_green_name" {
+  description = "id - ARN of the green Target Group (matches arn)."
+  value       = try(aws_lb_target_group.green[0].name, "")
+}
+
 output "cloudwatch_log_group_name" {
   description = "The name of the log group"
   value       = try(aws_cloudwatch_log_group.this[0].name, null)
