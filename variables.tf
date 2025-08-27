@@ -347,3 +347,14 @@ variable "deployment_configuration" {
   })
   default = null
 }
+
+variable "lb_advanced_configuration" {
+  description = "Advanced configuration block for load balancer"
+  type = object({
+    alternate_target_group_arn = string
+    production_listener_rule   = string
+    role_arn                   = string
+    test_listener_rule         = optional(string)
+  })
+  default = null
+}

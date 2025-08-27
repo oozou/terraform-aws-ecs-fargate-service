@@ -411,6 +411,40 @@ resource "aws_service_discovery_service" "service" {
   }
 }
 
+# For blue/green deployment, we need to create a role that allows ECS to manage the ELB
+resource "aws_iam_role" "ecs_elb_permissions" {
+  count = var.is_enable_blue_green_deployment ? 1 : 0
+  name  = "${local.name}-ecs-elb-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = [
+            "ecs-tasks.amazonaws.com",
+            "ecs.amazonaws.com",
+          ]
+        }
+      }
+    ]
+  })
+}
+
+# for example purposes only
+resource "aws_iam_role_policy_attachment" "ecs_service_role" {
+  count      = var.is_enable_blue_green_deployment ? 1 : 0
+  role       = aws_iam_role.ecs_elb_permissions[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole"
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_elb_management_role" {
+  count      = var.is_enable_blue_green_deployment ? 1 : 0
+  role       = aws_iam_role.ecs_elb_permissions[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonECSInfrastructureRolePolicyForLoadBalancers"
+}
+
 resource "aws_ecs_service" "this" {
   name                    = format("%s", local.name)
   cluster                 = local.ecs_cluster_arn
@@ -469,6 +503,17 @@ resource "aws_ecs_service" "this" {
       target_group_arn = aws_lb_target_group.this[0].arn
       container_name   = local.name
       container_port   = local.container_target_group_object.port_mappings[0].container_port
+
+      dynamic "advanced_configuration" {
+        for_each = local.is_create_target_group && var.is_enable_blue_green_deployment ? [true] : []
+
+        content {
+          alternate_target_group_arn = aws_lb_target_group.green[0].arn
+          production_listener_rule   = aws_lb_listener_rule.this[0].arn
+          role_arn                   = aws_iam_role.ecs_elb_permissions[0].arn
+          test_listener_rule         = aws_lb_listener_rule.green[0].arn
+        }
+      }
     }
   }
 
