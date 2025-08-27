@@ -259,7 +259,7 @@ resource "aws_lb_listener_rule" "green" {
     for_each = var.green_header_value == null ? [] : [true]
     content {
       http_header {
-        http_header_name = "green-header-name"
+        http_header_name = "x-amzn-ecs-bluegreen-test"
         values           = [var.green_header_value]
       }
     }
@@ -464,7 +464,26 @@ resource "aws_ecs_service" "this" {
   }
 
   deployment_controller {
-    type = local.deployment_controller
+    type = var.deployment_controller
+  }
+
+  dynamic "deployment_configuration" {
+    for_each = var.deployment_configuration != null ? [var.deployment_configuration] : []
+
+    content {
+      strategy             = deployment_configuration.value.strategy
+      bake_time_in_minutes = deployment_configuration.value.bake_time_in_minutes
+
+      dynamic "lifecycle_hook" {
+        for_each = deployment_configuration.value.lifecycle_hook != null ? deployment_configuration.value.lifecycle_hook : {}
+
+        content {
+          hook_target_arn  = lifecycle_hook.value.hook_target_arn
+          role_arn         = lifecycle_hook.value.role_arn
+          lifecycle_stages = lifecycle_hook.value.lifecycle_stages
+        }
+      }
+    }
   }
 
   lifecycle {

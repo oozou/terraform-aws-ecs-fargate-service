@@ -318,12 +318,32 @@ variable "is_enable_blue_green_deployment" {
 variable "green_header_value" {
   description = "green header value in alb listener rule for blue-green deployment"
   type        = string
-  default     = "green"
+  default     = "test-green"
 }
 
 variable "alb_priority_green" {
   description = "Priority of ALB rule https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#listener-rules"
   type        = string
-  default     = "110"
+  default     = "90"
 }
 
+variable "deployment_controller" {
+  description = "The deployment controller to use for the service. The valid values are CODE_DEPLOY and ECS. By default, the deployment controller for all services is set to ECS."
+  type        = string
+  default     = "ECS"
+
+}
+
+variable "deployment_configuration" {
+  description = "Configuration block for deployment settings"
+  type = object({
+    strategy             = optional(string)
+    bake_time_in_minutes = optional(string)
+    lifecycle_hook = optional(map(object({
+      hook_target_arn  = string
+      role_arn         = string
+      lifecycle_stages = list(string)
+    })))
+  })
+  default = null
+}

@@ -12,7 +12,7 @@ data "aws_availability_zones" "available" {
 /* -------------------------------------------------------------------------- */
 module "vpc" {
   source       = "oozou/vpc/aws"
-  version      = "1.2.5"
+  version      = "2.0.5"
   prefix       = var.prefix
   environment  = var.environment
   account_mode = "spoke"
@@ -180,5 +180,163 @@ module "api_service" {
   # Blue-Green Deployment
   is_enable_blue_green_deployment = true
 
+  deployment_configuration = {
+    strategy             = "BLUE_GREEN"
+    bake_time_in_minutes = 2
+
+    # config using lifecycle hooks
+    lifecycle_hook = {
+      test_green_version = {
+        hook_target_arn  = aws_lambda_function.hook_test_green.arn
+        role_arn         = aws_iam_role.ecs_green.arn
+        lifecycle_stages = ["TEST_TRAFFIC_SHIFT"]
+      }
+    }
+  }
+
   tags = var.custom_tags
+}
+
+/* -------------------------------------------------------------------------- */
+/*                        Blue-Green Deployment Resources                     */
+/* -------------------------------------------------------------------------- */
+
+# Lambda function for testing green deployment
+resource "aws_lambda_function" "hook_test_green" {
+  filename      = "hook_test_green.zip"
+  function_name = format("%s-%s-%s-hook-test-green", var.prefix, var.environment, var.name)
+  role          = aws_iam_role.lambda_execution_role.arn
+  handler       = "index.handler"
+  runtime       = "python3.9"
+  timeout       = 300
+
+  source_code_hash = data.archive_file.hook_test_green_zip.output_base64sha256
+
+  environment {
+    variables = {
+      ALB_DNS_NAME = module.fargate_cluster.alb_dns_name
+    }
+  }
+
+  tags = var.custom_tags
+}
+
+# ZIP file for Lambda function
+data "archive_file" "hook_test_green_zip" {
+  type        = "zip"
+  output_path = "hook_test_green.zip"
+  source {
+    content = templatefile("${path.module}/lambda/hook_test_green.py", {
+      cluster_name = module.fargate_cluster.ecs_cluster_name
+      service_name = format("%s-%s-%s-api-service", var.prefix, var.environment, var.name)
+    })
+    filename = "index.py"
+  }
+}
+
+# IAM role for Lambda execution
+resource "aws_iam_role" "lambda_execution_role" {
+  name = format("%s-%s-%s-lambda-execution-role", var.prefix, var.environment, var.name)
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.custom_tags
+}
+
+# IAM policy for Lambda function
+resource "aws_iam_role_policy" "lambda_execution_policy" {
+  name = format("%s-%s-%s-lambda-execution-policy", var.prefix, var.environment, var.name)
+  role = aws_iam_role.lambda_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:DescribeServices",
+          "ecs:DescribeTasks",
+          "ecs:ListTasks",
+          "elasticloadbalancing:DescribeTargetHealth",
+          "elasticloadbalancing:DescribeTargetGroups"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "codedeploy:PutLifecycleEventHookExecutionStatus"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# IAM role for ECS CodeDeploy green deployment
+resource "aws_iam_role" "ecs_green" {
+  name = format("%s-%s-%s-ecs-green-role", var.prefix, var.environment, var.name)
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "codedeploy.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.custom_tags
+}
+
+# IAM policy for ECS green deployment role
+resource "aws_iam_role_policy_attachment" "ecs_green_policy" {
+  role       = aws_iam_role.ecs_green.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"
+}
+
+# Additional policy for ECS green role to invoke Lambda
+resource "aws_iam_role_policy" "ecs_green_lambda_policy" {
+  name = format("%s-%s-%s-ecs-green-lambda-policy", var.prefix, var.environment, var.name)
+  role = aws_iam_role.ecs_green.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "lambda:InvokeFunction"
+        ]
+        Resource = [
+          aws_lambda_function.hook_test_green.arn,
+          "${aws_lambda_function.hook_test_green.arn}:*"
+        ]
+      }
+    ]
+  })
 }
