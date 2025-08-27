@@ -434,10 +434,19 @@ resource "aws_ecs_service" "this" {
     }
   }
 
-  service_registries {
-    registry_arn   = aws_service_discovery_service.service.arn
-    container_name = local.name
+
+  dynamic "service_registries" {
+    # Set by task set if deployment controller is external
+    for_each = var.is_enable_blue_green_deployment ? [] : [true]
+
+    content {
+      container_name = local.name
+      container_port = local.container_target_group_object.port_mappings[0].container_port
+      port           = lookup(local.container_target_group_object, "port_mappings", null)[0].container_port
+      registry_arn   = aws_service_discovery_service.service.arn
+    }
   }
+
 
   dynamic "capacity_provider_strategy" {
     for_each = var.capacity_provider_strategy == null ? [] : [true]
