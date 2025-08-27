@@ -215,6 +215,12 @@ resource "aws_lb_listener_rule" "this" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      action
+    ]
+  }
+
   tags = local.tags
 }
 
@@ -265,6 +271,11 @@ resource "aws_lb_listener_rule" "green" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      action
+    ]
+  }
   tags = local.tags
 }
 
